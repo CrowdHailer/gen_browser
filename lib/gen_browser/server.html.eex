@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <h1>Hi</h1>
+  <script type="text/javascript">
+    console.log('Hello')
+    var eventSource = new EventSource("http://localhost:8080/mailbox")
+    eventSource.addEventListener('gen_browser', function (event) {
+      var {self, config, pair_up} = JSON.parse(event.data)
+      window.self = self
+      window.logger = config.logger
+      window.pair_up = config.pair_up
+    })
+    eventSource.addEventListener('message', function (event) {
+
+      var data = JSON.parse(event.data)
+      console.log(data)
+      if (data.your_pair) {
+        console.log('paired with', data.your_pair)
+        window.pair = data.your_pair
+      }
+    })
+
+    function sendMessage(address, data) {
+      fetch('http://localhost:8080/mailbox/' + address, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        mode: 'no-cors'
+      })
+    }
+  </script>
+</body>
+</html>
