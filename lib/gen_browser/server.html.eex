@@ -8,7 +8,19 @@
 </head>
 <body>
   <h1>Hi</h1>
+  <ul id="messages"></ul>
+  <ul id="your_pair"></ul>
+  <button onclick="sendMessage(window.pair_up, {pair_me: window.self, display_name: 'dan'})">Pair up</button>
+  <button onclick="sendMessage(window.pair, {message: 'Hello'})">Send</button>
   <script type="text/javascript">
+
+    var $message = document.getElementById('messages')
+    var $your_pair = document.getElementById('your_pair')
+    displayUpdate = function (text) {
+      var line = "<li>" + text +"</li>"
+      $message.innerHTML = line + $message.innerHTML
+    }
+
     console.log('Hello')
     var eventSource = new EventSource("http://localhost:8080/mailbox")
     eventSource.addEventListener('gen_browser', function (event) {
@@ -24,6 +36,10 @@
       if (data.your_pair) {
         console.log('paired with', data.your_pair)
         window.pair = data.your_pair
+        your_pair.innerHTML = data.your_pair
+      }
+      if (data.message) {
+        displayUpdate(data.message)
       }
     })
 
