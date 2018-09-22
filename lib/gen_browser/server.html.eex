@@ -13,7 +13,6 @@
   <button onclick="sendMessage(window.pair_up, {pair_me: window.self, display_name: 'dan'})">Pair up</button>
   <button onclick="sendMessage(window.pair, {message: 'Hello'})">Send</button>
   <script type="text/javascript">
-
     var $message = document.getElementById('messages')
     var $your_pair = document.getElementById('your_pair')
     displayUpdate = function (text) {

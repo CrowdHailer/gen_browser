@@ -74,3 +74,25 @@ This message will have been delivered to browser 2
 // console 2
 //{message: "hello friend"}
 ```
+
+## A better API?
+```js
+var client = new GenBrowser({
+  init: function(state){
+    GenBrowser.send(this.address(), {message: 'bounce'})
+    state
+  },
+  handle: function(message, state){
+    GenBrowser.reply(message.from, "my reply")
+    state
+  }
+})
+client.start('/events')
+client.start('/_genBrowser')
+// Can easily send a call from server to client.
+// would be best to only get reference to client once initialized
+client.start('/_genBrowser', function (address) {
+  window.address
+  // of something in redux state.
+})
+```
