@@ -14,7 +14,7 @@ defmodule GenBrowser.Server do
 
   def handle_request(request = %{method: :GET, path: ["mailbox"]}, state) do
     page_id = String.pad_leading("#{:rand.uniform(1_000_000) - 1}", 6, "0")
-    page_address = {:global, {GenBrowser.Page, page_id}}
+    page_address = GenBrowser.Page.address(page_id)
 
     # Can use Dynamic Supervisor if global gives use the correct already started behaviour
     {:ok, pid} =
@@ -28,7 +28,8 @@ defmodule GenBrowser.Server do
     # TODO make the result of init
     setup =
       Jason.encode!(%{
-        "self" => encode_address(page_address),
+        "id" => page_id,
+        "address" => encode_address(page_address),
         "config" => %{"logger" => encode_address(MyLogger), "pair_up" => encode_address(PairUp)}
       })
 
@@ -56,6 +57,7 @@ defmodule GenBrowser.Server do
       {:global, term} ->
         :global.whereis_name(term)
     end
+    |> IO.inspect()
     |> send(message)
 
     response(:created)

@@ -10,8 +10,36 @@
   <h1>Hi</h1>
   <ul id="messages"></ul>
   <ul id="your_pair"></ul>
-  <button onclick="sendMessage(window.pair_up, {pair_me: window.self, display_name: 'dan'})">Pair up</button>
-  <button onclick="sendMessage(window.pair, {message: 'Hello'})">Send</button>
+  <button onclick="GenBrowser.send(client.state.pair_up, {pair_me: client.address, display_name: 'dan'})">Pair up</button>
+  <button onclick="GenBrowser.send(client.state.pair, {text: 'Hello'})">Send</button>
+  <script type="text/javascript">
+    function GenBrowser({init, handle_info}){
+      var client = this
+      init = init.bind(client)
+      handle_info = handle_info.bind(client)
+      var eventSource
+      this.start = function (path) {
+        eventSource = new EventSource(path)
+        eventSource.addEventListener('gen_browser', function (event) {
+          var {id, address, config} = JSON.parse(event.data)
+          client.id = id
+          client.address = address
+          client.state = init(config)
+        })
+        eventSource.addEventListener('message', function (event) {
+          var data = JSON.parse(event.data)
+          client.state = handle_info(data, client.state)
+        })
+      }
+    }
+    GenBrowser.send = function (address, data) {
+      fetch('http://localhost:8080/mailbox/' + address, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        mode: 'no-cors'
+      })
+    }
+  </script>
   <script type="text/javascript">
     var $message = document.getElementById('messages')
     var $your_pair = document.getElementById('your_pair')
@@ -20,35 +48,26 @@
       $message.innerHTML = line + $message.innerHTML
     }
 
-    console.log('Hello')
-    var eventSource = new EventSource("http://localhost:8080/mailbox")
-    eventSource.addEventListener('gen_browser', function (event) {
-      var {self, config, pair_up} = JSON.parse(event.data)
-      window.self = self
-      window.logger = config.logger
-      window.pair_up = config.pair_up
-    })
-    eventSource.addEventListener('message', function (event) {
-
-      var data = JSON.parse(event.data)
-      console.log(data)
-      if (data.your_pair) {
-        console.log('paired with', data.your_pair)
-        window.pair = data.your_pair
-        your_pair.innerHTML = data.your_pair
-      }
-      if (data.message) {
-        displayUpdate(data.message)
+    var client = new GenBrowser({
+      init: function(state){
+        console.log(state)
+        return state
+      },
+      handle_info: function(message, state){
+        console.log(message)
+        if (message.your_pair) {
+          console.log('paired with', message.your_pair)
+          state.pair = message.your_pair
+          your_pair.innerHTML = message.your_pair
+        }
+        if (message.text) {
+          displayUpdate(message.text)
+        }
+        return state
       }
     })
-
-    function sendMessage(address, data) {
-      fetch('http://localhost:8080/mailbox/' + address, {
-        method: 'POST',
-        body: JSON.stringify(data),
-        mode: 'no-cors'
-      })
-    }
+    client.start('mailbox')
+    window.client = client;
   </script>
 </body>
 </html>

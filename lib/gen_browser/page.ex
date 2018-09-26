@@ -2,7 +2,11 @@ defmodule GenBrowser.Page do
   use GenServer
 
   def start_link(page_id) do
-    GenServer.start_link(__MODULE__, {page_id}, name: {:global, {__MODULE__, page_id}})
+    GenServer.start_link(__MODULE__, {page_id}, name: address(page_id))
+  end
+
+  def address(page_id) do
+    {:global, {__MODULE__, page_id}}
   end
 
   def init({page_id}) do
