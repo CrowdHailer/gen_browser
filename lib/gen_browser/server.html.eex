@@ -9,7 +9,7 @@
 <body>
   <h1>Hi</h1>
   <ul id="messages"></ul>
-  <ul id="your_pair"></ul>
+  <ul>Your pair <span id="your_pair"></span></ul>
   <button onclick="GenBrowser.send(client.state.pair_up, {pair_me: client.address, display_name: 'dan'})">Pair up</button>
   <button onclick="GenBrowser.send(client.state.pair, {text: 'Hello'})">Send</button>
   <script type="text/javascript">
