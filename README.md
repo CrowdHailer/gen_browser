@@ -1,6 +1,6 @@
 # GenBrowser
 
-**Treat a client like any other Elixir/erlang process**
+**Treat a client like any other Elixir/erlang process in a distributed system**
 
 ## Rational
 
