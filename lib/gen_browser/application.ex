@@ -5,9 +5,6 @@ defmodule GenBrowser.Application do
 
   def start(_type, _args) do
     children = [
-      {GenBrowser.Server, [%{}, []]},
-      {MyLogger, []},
-      {PairUp, []},
       %{
         id: GenBrowser.Page.Supervisor,
         start:
