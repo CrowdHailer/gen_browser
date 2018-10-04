@@ -105,6 +105,8 @@ client.send(client.state.named_process, {text: 'anything', from: client.address}
 
 ## Roadmap
 
+- Add CORS headers so that client does not need to be served from the same host
+- Add Docker wrapped example service for JavaScript developers
 - Handle reconnects
   - Needs to buffer messages when client is not connected
   - Needs to read last-event-id and resume forwarding
@@ -115,7 +117,10 @@ client.send(client.state.named_process, {text: 'anything', from: client.address}
   - Plug/Phoenix
 - Redux middleware integration
 - Parsing received messages to structs somehow.
-- Ack message to reduce the size of the mailbox
+- Ack message to reduce the size of the mailbox.
+  - prevent reconnecting to some event that has previously been acked.
+    `Clients will reconnect if the connection is closed; a client can be told to stop reconnecting using the HTTP 204 No Content response code.`
+    This might not trigger an onerror, it might be best to on error on the client so sending a 4xx could be better
 - Check signatures
 - Extend to iOS and Android, maybe a better name is GenClient.
 - Configure reconnect timeout.

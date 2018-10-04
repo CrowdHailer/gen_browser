@@ -55,6 +55,7 @@ defmodule GenBrowser.Standalone do
     response =
       response(:ok)
       |> set_header("content-type", ServerSentEvent.mime_type())
+      |> set_header("access-control-allow-origin", "*")
       |> set_body(true)
 
     {[response, Raxx.data(setup_event)], state}
