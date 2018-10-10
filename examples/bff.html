@@ -14,7 +14,17 @@
   <button onclick="sendYourMessage()">Send your Message</button>
   <h2>Messages</h2>
   <ul id="messages"></ul>
-  <script type="text/javascript" src="/_gen_browser/page.js"></script>
+  <script>
+    // HACK(keanulee): The Redux package assumes `process` exists - mock it here before
+    // the module is loaded.
+    window.process = {
+      env: {
+        NODE_ENV: 'production'
+      }
+    };
+  </script>
+  <script type="text/javascript" src="/bff/index.js"></script>
+  <!-- <script type="text/javascript" src="/_gen_browser/page.js"></script>
   <script type="text/javascript">
     var $messages = document.getElementById('messages')
     var $message = document.getElementById('message')
@@ -55,6 +65,6 @@
       client.send(client.state.pair, {text: $message.value})
       $message.value = ''
     }
-  </script>
+  </script> -->
 </body>
 </html>

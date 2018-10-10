@@ -128,6 +128,8 @@ client.send(client.state.named_process, {text: 'anything', from: client.address}
 - use PUT vs POST for retries
 - Work out what to do if page process dies.
   Probably this should be propogated to client, that then restarts or refreshes page. This would be the way to manage deployment and state lives in other processes.
+  When a backend page process dies the EventSource closes, this could be due to reconnecting to fetch events that no longer exist.
+  The browser page may be able to start a new event source and repeat authentication or other process to get data that was persisted.
 - ElixirScript
 
 ## Security
