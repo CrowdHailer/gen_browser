@@ -1,3 +1,45 @@
+# ReduxCloud
+
+```js
+// cloud sounds like backup. instead redux-swarm, redux-flock, redux-cluster, redux-comms
+// conveyance, transmission, 
+import { start } from 'redux-cloud'
+
+// second argument should contain options like timeout for connection
+// If browser can choose mailbox address this would not need to be a promise
+const { send, mailbox, config } = await start('http://localhost:8080')
+
+// Global is an address which can be used to globally register names
+const { global } = config
+
+send(global, {ping: [mailbox.address]})
+var pong = await mailbox.receive()
+
+send(registry, {register: 'alice', address: mailbox.address})
+// Would be good if i could get an address I can call on
+// As soon as connected this code is running so as long as handle is set before we go back to the event loop all is good
+// Sending a message might not be understood, it might also not be understood who it was even from
+// Can have a standard container so if on the back end it fails catch can be raised in the send
+
+// Can decode the address in the final process
+send(registry, {lookup: 'alice', reply: mailbox.address})
+// Can have a call function
+// Call function would need to be on the mailbox because that is where the reply was sent to
+// All though you could open a one of channel/page would then be a bad name
+// ping should log "Pong send to <address>"
+
+// Can I do await mailbox.receive()
+// Registry should accept a ping message
+// Ping to the console
+// Ping to some other browser
+
+// Doesn't tell about disconnect, cz that's weird. Try pinging somewhere
+
+mailbox.handle(function(message){console.log(message)})
+
+// pass client or promise to redux middleware
+```
+
 # GenBrowser
 
 **Treat a client like any other Elixir/erlang process in a distributed system**
@@ -105,7 +147,7 @@ client.send(client.state.named_process, {text: 'anything', from: client.address}
 
 ## Roadmap
 
-- Add CORS headers so that client does not need to be served from the same host
+
 - Add Docker wrapped example service for JavaScript developers
 - Handle reconnects
   - Needs to buffer messages when client is not connected
