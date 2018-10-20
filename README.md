@@ -85,61 +85,43 @@ Look for help with JS API docs
 ## Server API
 
 GenBrowser.start_link(config)
+## Docs
 
-## Roadmap
+### Starting the backend
 
-### Pinger/ponder example
+```elixir
+GenServer.start_link(SomeModule, state, name: SomeModule)
 
-- Registry should accept a ping message
-- Ping to the console
-- Ping to some other browser
+# The initial client state.
+# once initialized clients will be able to send messages directly to the GenServer called `SomeModule`
+client_state = %{"named_process" => SomeModule}
 
-could add logger to standard setup
+# The page that is going to be playing the role of a process in our system.
+page_content = File.read!(Path.join(__DIR__, "my_page.html"))
 
-### Integration with raxx and/or plug
-
-Document server API
-
-### Secure the addresses using signatures
-
-A client should only be able to send message to addresses it has been provided with.
-i.e. it should not be possible to guess the address of processes.
-
-This is the Object capability security model https://en.wikipedia.org/wiki/Object-capability_model
-
-To do this the server should sign addresses, and verify signatures before forwarding the message.
-
-By signing the event-id this method can be used to secure an individual clients reconnections
-
-### Demonstrate with Redux
-
-This could just be the redux swarm below.
-There are ways to start new browser windows, this might be fun
-
-### Clear the server mailbox
-
-Client should be able to send the ability to ack messages and clear up the contents of the server mailbox.
-
-The server mailbox process should also have a timeout after which a reconnection is not possible.
-
-Can the id of a reconnect be taken as an ack, or should that be sent separatly.
-
-There should also be a timeout after which the mailbox process dies.
-Finally we need to signal to the client in cases when a reconnect to a dead mailbox is attempted.
-
-`Clients will reconnect if the connection is closed; a client can be told to stop reconnecting using the HTTP 204 No Content response code.`
-This might not trigger an onerror, it might be best to on error on the client so sending a 4xx could be better
-
-### Work out how to provide a validation layer for messages as they are received by server
-
-`send` already returns a promise, awaiting on this could at least validate message was legit
-
-### Redux middleware
-
-This is the comms goal, i.e. don't call send, just return a list of addresses and messages thus making the whole thing pure.
+GenBrowser.Standalone.start_link(client_config,
+  page_content: content,
+  port: 8080,
+  cleartext: true
+)
+```
 
 ## Notes
 
+### So experimental right now
+
+Best thing to do is play with examples.
+
+Check the [Roadmap](#Roadmap) for what I'm working on next.
+
+### Rational
+
+Client/Server is just another type of distributed system.
+What if the whole system can be treated as a group of processes that send messages to each other.
+
+Currently it is easy to send messages client to server.
+
+The goal of this project is to make it just as easy to send messages client to server and even client to client.
 ### Whats in a name?
 
 The name `GenBrowser` comes from the erlang/Elixir terms for generalised servers; `GenServer`.
@@ -195,7 +177,13 @@ A standard call format would go someway to providing a standard message containe
 
 ### Security
 
-TODO signature
+A client should only be able to send message to addresses it has been provided with.
+i.e. it should not be possible to guess the address of processes.
+
+This is the Object capability security model https://en.wikipedia.org/wiki/Object-capability_model
+
+By signing the event-id this method can be used to secure an individual clients reconnections
+
 - If id generation secure enough don't need to sign those addresses,
   However will always need to sign encoded tuples, don't want those to be generated
 - Reconnection id is the security mechanism to act as someone.
@@ -211,68 +199,49 @@ It does not yet unify language.
 The goal to unify language would be an argument for a server implemented in node, however this is not the best host for thinging of the system using the Actor model.
 It might be possible to use ElixirScript for the front end.
 
----
-
-blob about unified but not liveview
-
-// Would be good if i could get an address I can call on
-
-### Rational
-
-Client/Server is just another type of distributed system.
-What if the whole system can be treated as a group of processes that send messages to each other.
-
-Currently it is easy to send messages client to server.
-The goal of this project is to make it just as easy to send messages client to server and even client to client.
-
-#### So experimental right now
-
-Best thing to do is play with examples. Docs are available below but in a state of flux.
-
-Check the [Roadmap](#Roadmap) for what I'm working on next.
-
-#### Is this crazy?
+### Is this crazy?
 
 Maybe.
 
 Let me know what you think.
 
-## Examples
+## Roadmap
 
-- clone this repo
-- pull dependencies `mix deps.get`
-- start the example, see example.
-- visit `localhost:8080`
+### Pinger/ponder example
 
-### Contrary
+- Registry should accept a ping message
+- Ping to the console
+- Ping to some other browser
 
-*start the example:* `mix run examples/contrary.exs`
+could add logger to standard setup
 
-Send messages from client to server and back.
+### Integration with raxx and/or plug
 
-### BFF
+Document server API
 
-*start the example:* `mix run examples/bff.exs`
+### Demonstrate with Redux
 
-Send messages from client to another client.
+This could just be the redux swarm below.
+There are ways to start new browser windows, this might be fun
 
-## Docs
+### Clear the server mailbox
 
-### Starting the backend
+Client should be able to send the ability to ack messages and clear up the contents of the server mailbox.
 
-```elixir
-GenServer.start_link(SomeModule, state, name: SomeModule)
+The server mailbox process should also have a timeout after which a reconnection is not possible.
 
-# The initial client state.
-# once initialized clients will be able to send messages directly to the GenServer called `SomeModule`
-client_state = %{"named_process" => SomeModule}
+Can the id of a reconnect be taken as an ack, or should that be sent separatly.
 
-# The page that is going to be playing the role of a process in our system.
-page_content = File.read!(Path.join(__DIR__, "my_page.html"))
+There should also be a timeout after which the mailbox process dies.
+Finally we need to signal to the client in cases when a reconnect to a dead mailbox is attempted.
 
-GenBrowser.Standalone.start_link(client_config,
-  page_content: content,
-  port: 8080,
-  cleartext: true
-)
-```
+`Clients will reconnect if the connection is closed; a client can be told to stop reconnecting using the HTTP 204 No Content response code.`
+This might not trigger an onerror, it might be best to on error on the client so sending a 4xx could be better
+
+### Work out how to provide a validation layer for messages as they are received by server
+
+`send` already returns a promise, awaiting on this could at least validate message was legit
+
+### Redux middleware
+
+This is the comms goal, i.e. don't call send, just return a list of addresses and messages thus making the whole thing pure.

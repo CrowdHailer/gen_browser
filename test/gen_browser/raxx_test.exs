@@ -38,7 +38,10 @@ defmodule GenBrowser.RaxxTest do
 
   setup do
     {:ok, server} =
-      Ace.HTTP.Service.start_link({GenBrowser.Raxx, :config}, port: 0, cleartext: true)
+      Ace.HTTP.Service.start_link({GenBrowser.Raxx, %{secrets: ["secret"]}},
+        port: 0,
+        cleartext: true
+      )
 
     {:ok, port} = Ace.HTTP.Service.port(server)
     {:ok, port: port}
@@ -112,18 +115,42 @@ defmodule GenBrowser.RaxxTest do
   end
 
   test "Invalid format for reconnect id is rejected", %{port: port} do
+    last_event_id = GenBrowser.Web.wrap_secure("not_at_all_valid", ["secret"])
+
     request =
       Raxx.request(:GET, "http://localhost:#{port}/mailbox")
       |> Raxx.set_header("accept", @sse_mime_type)
-      |> Raxx.set_header("last-event-id", "not_at_all_valid")
+      |> Raxx.set_header("last-event-id", last_event_id)
 
     {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
     assert response.status == 403
 
+    last_event_id = GenBrowser.Web.wrap_secure("ok:but_still_not_a_number", ["secret"])
+
     request =
       Raxx.request(:GET, "http://localhost:#{port}/mailbox")
       |> Raxx.set_header("accept", @sse_mime_type)
-      |> Raxx.set_header("last-event-id", "ok:but_still_not_a_number")
+      |> Raxx.set_header("last-event-id", last_event_id)
+
+    {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
+    assert response.status == 403
+
+    last_event_id = "foo--signature"
+
+    request =
+      Raxx.request(:GET, "http://localhost:#{port}/mailbox")
+      |> Raxx.set_header("accept", @sse_mime_type)
+      |> Raxx.set_header("last-event-id", last_event_id)
+
+    {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
+    assert response.status == 403
+
+    last_event_id = "not_even_a_signature"
+
+    request =
+      Raxx.request(:GET, "http://localhost:#{port}/mailbox")
+      |> Raxx.set_header("accept", @sse_mime_type)
+      |> Raxx.set_header("last-event-id", last_event_id)
 
     {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
     assert response.status == 403
@@ -196,6 +223,7 @@ defmodule GenBrowser.RaxxTest do
 
     test "address that is not base64 encoded is rejected", %{port: port} do
       address = "==="
+      address = GenBrowser.Web.wrap_secure(address, ["secret"])
 
       request =
         Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
@@ -207,6 +235,29 @@ defmodule GenBrowser.RaxxTest do
 
     test "address that is not a valid term is rejected", %{port: port} do
       address = Base.url_encode64("===")
+      address = GenBrowser.Web.wrap_secure(address, ["secret"])
+
+      request =
+        Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
+        |> Raxx.set_body(Jason.encode!(%{}))
+
+      {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
+      assert response.status == 400
+    end
+
+    test "address that has incorrect signature is rejected", %{port: port} do
+      address = "abc--signature"
+
+      request =
+        Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
+        |> Raxx.set_body(Jason.encode!(%{}))
+
+      {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
+      assert response.status == 400
+    end
+
+    test "address that has no signature is rejected", %{port: port} do
+      address = "not_even_a_signature"
 
       request =
         Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
@@ -221,6 +272,7 @@ defmodule GenBrowser.RaxxTest do
         Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
         |> Raxx.set_body(Jason.encode!(%{}))
 
+      {:ok, address} = GenBrowser.Web.unwrap_secure(address, ["secret"])
       {:ok, address_struct} = GenBrowser.Address.decode(address)
       pid = GenBrowser.Address.whereis(address_struct)
       :ok = GenServer.stop(pid)

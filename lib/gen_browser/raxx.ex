@@ -10,7 +10,7 @@ defmodule GenBrowser.Raxx do
   def handle_request(request = %{path: ["mailbox"]}, state) do
     OK.try do
       _ <- verify_accepts_server_sent_events(request)
-      {mailbox_id, cursor} <- decode_last_event_id(request)
+      {mailbox_id, cursor} <- decode_last_event_id(request, state.secrets)
 
       messages <-
         GenBrowser.Mailbox.read(mailbox_id, cursor, GenBrowser.MailboxSupervisor, %{foo: 5})
@@ -21,7 +21,7 @@ defmodule GenBrowser.Raxx do
         |> set_header("access-control-allow-origin", "*")
         |> set_body(true)
 
-      {[response_head | Enum.map(messages, &encode/1)], state}
+      {[response_head | Enum.map(messages, &encode(&1, state.secrets))], state}
     rescue
       response = %Raxx.Response{} ->
         response
@@ -32,8 +32,9 @@ defmodule GenBrowser.Raxx do
     end
   end
 
-  def handle_request(request = %{method: :POST, path: ["send", address]}, _state) do
+  def handle_request(request = %{method: :POST, path: ["send", address]}, state) do
     OK.try do
+      address <- unwrap_address(address, state.secrets)
       address <- decode_address(address)
       message <- decode_message(request)
       _ <- send_message(address, message)
@@ -51,19 +52,47 @@ defmodule GenBrowser.Raxx do
   end
 
   def handle_info(update, state) do
-    {[encode(update)], state}
+    {[encode(update, state.secrets)], state}
   end
 
-  def encode(%{id: id, data: data, type: :init}) do
-    ServerSentEvent.serialize(Jason.encode!(Map.merge(data, %{type: "__gen_browser__/init"})),
-      id: id
+  def encode(%{id: id, data: data, type: :init}, secrets) do
+    data = Map.merge(data, %{type: "__gen_browser__/init"})
+    wrapped_data = wrap_all_addresses(data, secrets)
+
+    ServerSentEvent.serialize(
+      Jason.encode!(wrapped_data),
+      id: GenBrowser.Web.wrap_secure(id, secrets)
     )
     |> Raxx.data()
   end
 
-  def encode(%{id: id, data: data}) do
-    ServerSentEvent.serialize(Jason.encode!(data), id: id)
+  def encode(%{id: id, data: data}, secrets) do
+    data = wrap_all_addresses(data, secrets)
+
+    ServerSentEvent.serialize(Jason.encode!(data), id: GenBrowser.Web.wrap_secure(id, secrets))
     |> Raxx.data()
+  end
+
+  defp wrap_all_addresses(address = %GenBrowser.Address{}, secrets) do
+    GenBrowser.Web.wrap_secure(GenBrowser.Address.encode(address), secrets)
+  end
+
+  defp wrap_all_addresses(data = %_struct{}, _secrets) do
+    # leave as is assume they can handle protocols
+    data
+  end
+
+  defp wrap_all_addresses(map = %{}, secrets) do
+    Enum.map(map, fn {key, value} -> {key, wrap_all_addresses(value, secrets)} end)
+    |> Enum.into(%{})
+  end
+
+  defp wrap_all_addresses(list = [], secrets) do
+    Enum.map(list, fn value -> wrap_all_addresses(value, secrets) end)
+  end
+
+  defp wrap_all_addresses(other, _secrets) do
+    other
   end
 
   defp verify_accepts_server_sent_events(request) do
@@ -91,7 +120,7 @@ defmodule GenBrowser.Raxx do
     end
   end
 
-  defp decode_last_event_id(request) do
+  defp decode_last_event_id(request, secrets) do
     invalid_format_message =
       "Reconnection failed to due incorrect format of 'last-event-id' header"
 
@@ -100,17 +129,23 @@ defmodule GenBrowser.Raxx do
         {:ok, {nil, nil}}
 
       last_event_id ->
-        case String.split(last_event_id, ":") do
-          [mailbox_id, string_cursor] ->
-            case Integer.parse(string_cursor) do
-              {cursor, ""} ->
-                {:ok, {mailbox_id, cursor}}
+        case GenBrowser.Web.unwrap_secure(last_event_id, secrets) do
+          {:ok, reconnect_id} ->
+            case String.split(reconnect_id, ":") do
+              [mailbox_id, string_cursor] ->
+                case Integer.parse(string_cursor) do
+                  {cursor, ""} ->
+                    {:ok, {mailbox_id, cursor}}
 
-              _ ->
+                  _ ->
+                    {:error, invalid_format_message}
+                end
+
+              _other ->
                 {:error, invalid_format_message}
             end
 
-          _other ->
+          _ ->
             {:error, invalid_format_message}
         end
     end
@@ -120,6 +155,17 @@ defmodule GenBrowser.Raxx do
 
       {:error, message} ->
         {:error, response(:forbidden) |> set_body(message)}
+    end
+  end
+
+  defp unwrap_address(secured, secrets) do
+    case GenBrowser.Web.unwrap_secure(secured, secrets) do
+      {:ok, address} ->
+        {:ok, address}
+
+      {:error, reason} ->
+        {:error,
+         response(:bad_request) |> set_body("Could not decode address for reason '#{reason}'")}
     end
   end
 
