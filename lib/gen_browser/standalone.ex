@@ -1,11 +1,11 @@
 defmodule GenBrowser.Standalone do
   use Raxx.Server
 
-  javascript_path = File.read!(Path.join(__DIR__, "page.js"))
-  @external_resource javascript_path
+  # javascript_path = File.read!(Path.join(__DIR__, "page.js"))
+  # @external_resource javascript_path
   @javascript_response response(:ok)
                        |> set_header("content-type", "applicaton/javascript")
-                       |> set_body(javascript_path)
+  # |> set_body(javascript_path)
 
   def start_link(page_state, options) do
     page_content = Keyword.get(options, :page_content, "NOT FOUND")

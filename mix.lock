@@ -12,5 +12,5 @@
   "makeup_elixir": {:hex, :makeup_elixir, "0.10.0", "0f09c2ddf352887a956d84f8f7e702111122ca32fbbc84c2f0569b8b65cbf7fa", [:mix], [{:makeup, "~> 0.5.5", [hex: :makeup, repo: "hexpm", optional: false]}], "hexpm"},
   "nimble_parsec": {:hex, :nimble_parsec, "0.4.0", "ee261bb53214943679422be70f1658fff573c5d0b0a1ecd0f18738944f818efe", [:mix], [], "hexpm"},
   "raxx": {:hex, :raxx, "0.16.1", "3737b61f198755138bb2c8c61ed22dc06f9c0cf3218320189ddcda02da91d94a", [:mix], [{:cookie, "~> 0.1.0", [hex: :cookie, repo: "hexpm", optional: false]}, {:eex_html, "~> 0.1.1", [hex: :eex_html, repo: "hexpm", optional: false]}], "hexpm"},
-  "server_sent_event": {:hex, :server_sent_event, "0.4.2", "ab6f93e73964c6667138f803adc7dd2355707743e00f2e3ea8f022c165276dca", [:mix], [{:raxx, "~> 0.16.0", [hex: :raxx, repo: "hexpm", optional: false]}], "hexpm"},
+  "server_sent_event": {:hex, :server_sent_event, "0.4.3", "7f8c4424301d814faf702e12324571f50d64f951579e3d045cfcef06208b9139", [:mix], [{:raxx, "~> 0.16.0", [hex: :raxx, repo: "hexpm", optional: false]}], "hexpm"},
 }

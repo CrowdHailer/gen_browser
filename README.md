@@ -1,53 +1,226 @@
-# ReduxCloud
+# GenBrowser
+
+**Transparent bi-directional communication for clients, servers and more**
+
+## Example
 
 ```js
-// cloud sounds like backup. instead redux-swarm, redux-flock, redux-cluster, redux-comms
-// conveyance, transmission, 
-import { start } from 'redux-cloud'
+// ponger.js
+import { start } from 'gen-browser'
+const { address, mailbox, send, config } = await start('http://localhost:8080')
 
-// second argument should contain options like timeout for connection
-// If browser can choose mailbox address this would not need to be a promise
-const { send, mailbox, config } = await start('http://localhost:8080')
+console.log(address)
 
+mailbox.handle((message) => {
+  send(message.caller, {type: 'pong'})
+})
+```
+
+```js
+// pinger.js
+import { start } from 'gen-browser'
+const { address, mailbox, send, config } = await start('http://localhost:8080')
+
+const peer = prompt("Enter a ponger address.")
+send(peer, {type: 'ping', caller: address})
+
+await mailbox.receive({timeout: 5000})
+console.log("Pong received")
+```
+```js
 // Global is an address which can be used to globally register names
 const { global } = config
 
-send(global, {ping: [mailbox.address]})
-var pong = await mailbox.receive()
-
 send(registry, {register: 'alice', address: mailbox.address})
-// Would be good if i could get an address I can call on
-// As soon as connected this code is running so as long as handle is set before we go back to the event loop all is good
-// Sending a message might not be understood, it might also not be understood who it was even from
-// Can have a standard container so if on the back end it fails catch can be raised in the send
+
 
 // Can decode the address in the final process
 send(registry, {lookup: 'alice', reply: mailbox.address})
-// Can have a call function
-// Call function would need to be on the mailbox because that is where the reply was sent to
-// All though you could open a one of channel/page would then be a bad name
-// ping should log "Pong send to <address>"
-
-// Can I do await mailbox.receive()
-// Registry should accept a ping message
-// Ping to the console
-// Ping to some other browser
-
-// Doesn't tell about disconnect, cz that's weird. Try pinging somewhere
-
-mailbox.handle(function(message){console.log(message)})
-
-// pass client or promise to redux middleware
 ```
 
-# GenBrowser
+Once started `gen-browser` has four things.
 
-**Treat a client like any other Elixir/erlang process in a distributed system**
+1. An address that other clients, or the server, use it to send messages to this browser.
+2. A mailbox to receive messages. The mailbox can be used in one of two ways, but not both.
+  - `mailbox.receive()` will return a promise that will resolve on the next message received by the browser.
+  - `mailbox.handle(callback)` will call the callback with the contents of a message each time one is received.
+3. A function to send messages, that takes the target address and messages as arguments.
+  The message must be serialisable to JSON.
+4. Config from the server, this can be anything including addresses for processes on the backend,
+  such as the global registry process in the examples above.
 
-## Rational
+*Note:* Receive cannot be called on mailbox that has a custom handler installed.
+
+## Playground
+
+The pinger/ponger example is included in the `/examples` dir this project.
+Clone this repo and follow the instructions below to experiment.
+
+```
+git clone git@github.com:CrowdHailer/gen_browser.git
+cd gen_browser
+```
+
+Make sure the JavaScript bundle is built
+
+```
+npm run build
+```
+
+To start the backend use Docker as follows.
+
+```
+docker build -t gen-browser . && docker run -it -p 8080:8080 gen-browser
+```
+
+Or, if you have Elixir installed but not docker, mix can be used directly
+
+```
+mix run examples/standalone.exs
+```
+
+Look for help with JS API docs
+
+
+## Server API
+
+## Roadmap
+
+### Pinger/ponder example
+
+- Registry should accept a ping message
+- Ping to the console
+- Ping to some other browser
+
+could add logger to standard setup
+
+### Integration with raxx and/or plug
+
+Document server API
+
+### Secure the addresses using signatures
+
+A client should only be able to send message to addresses it has been provided with.
+i.e. it should not be possible to guess the address of processes.
+
+This is the Object capability security model https://en.wikipedia.org/wiki/Object-capability_model
+
+To do this the server should sign addresses, and verify signatures before forwarding the message.
+
+By signing the event-id this method can be used to secure an individual clients reconnections
+
+### Demonstrate with Redux
+
+This could just be the redux swarm below.
+There are ways to start new browser windows, this might be fun
+
+### Ensure connection process are removed from mailbox list when they die
+
+### Clear the server mailbox
+
+Client should be able to send the ability to ack messages and clear up the contents of the server mailbox.
+
+The server mailbox process should also have a timeout after which a reconnection is not possible.
+
+Can the id of a reconnect be taken as an ack, or should that be sent separatly.
+
+There should also be a timeout after which the mailbox process dies.
+Finally we need to signal to the client in cases when a reconnect to a dead mailbox is attempted.
+
+`Clients will reconnect if the connection is closed; a client can be told to stop reconnecting using the HTTP 204 No Content response code.`
+This might not trigger an onerror, it might be best to on error on the client so sending a 4xx could be better
+
+### Work out how to provide a validation layer for messages as they are received by server
+
+`send` already returns a promise, awaiting on this could at least validate message was legit
+
+### Redux middleware
+
+This is the comms goal, i.e. don't call send, just return a list of addresses and messages thus making the whole thing pure.
+
+## Notes
+
+### Whats in a name?
+
+The name `GenBrowser` comes from the erlang/Elixir terms for generalised servers; `GenServer`.
+Originally this project was aiming to model interations with the browser the same as any other erlang process.
+However at this point it is clear this is just a general communication layer and does not need to be tied to any erlang/OTP terminology.
+
+Other names
+// cloud sounds like backup. instead redux-swarm, redux-flock, redux-cluster, redux-comms
+// conveyance, transmission,
+
+### Redux is the JavaScript name for Actor
+
+Redux doesn't have a way to spawn new processes, so the analogy is not perfect.
+However it is probably the closed many developers have come.
+This might be a useful place to start the conversation.
+
+### `EventSource` is not implemented in IE
+
+Polyfills are available and some of these work in a node environment.
+
+### There is no alert for disconnects
+
+The browser disconnecting from the internet might not be important.
+Messages for the browser will be kept on the server until it reconnects.
+Because this is a distributed system, being connected to the server might still not mean you are connected to the peer you need.
+
+To check connections send a message and await a reply or timeout.
+
+If it is necessary to check connection with the server in general a message can be sent from the browser to it's own address.
+This will involve a server round trip.
+
+### Clients are temporary
+
+### Messages not understood
+
+Messages can always not be understood by the server.
+When using `send` the response is 202 accepted, this just means the server in general was happy the target process might not know how to handle the message.
+
+The target process might not even know who the message came from, and so be unable to return an error.
+In this case the system has to rely on timeouts and crashlogging.
+
+To tackle this problem a standard message container could be provided,
+it might include a standard format for sender, and perhaps tracing.
+Such a standard format could easily be built on top of this library.
+
+### GenCall
+
+A call function could exist, both where the server can call the client and block on response and vica versa.
+
+This would require the send function to have a reference to the mailbox.
+It would also require a selective receive, other push messages from the server might have arrived.
+A standard call format would go someway to providing a standard message container as discussed in messages not understood.
+
+### Security
+
+TODO signature
+- If id generation secure enough don't need to sign those addresses,
+  However will always need to sign encoded tuples, don't want those to be generated
+- Reconnection id is the security mechanism to act as someone.
+  In what cases does that id get sent again? How can nefarious actors get to that information,
+  EventSource doesn't let you add custom headers.
+
+### Redux swarm where you send every browser you are connected to
+
+### Single language
+
+This project aims to unify the programming model accross both client and server.
+It does not yet unify language.
+The goal to unify language would be an argument for a server implemented in node, however this is not the best host for thinging of the system using the Actor model.
+It might be possible to use ElixirScript for the front end.
+
+---
+
+blob about unified but not liveview
+
+// Would be good if i could get an address I can call on
+
+### Rational
 
 Client/Server is just another type of distributed system.
-What if the whole system is treated as a group of processes that send messages to each other.
+What if the whole system can be treated as a group of processes that send messages to each other.
 
 Currently it is easy to send messages client to server.
 The goal of this project is to make it just as easy to send messages client to server and even client to client.
@@ -102,149 +275,4 @@ GenBrowser.Standalone.start_link(client_config,
   port: 8080,
   cleartext: true
 )
-```
-
-*The roadmap includes making it possible to mount the backend in a Raxx or Plug/Phoenix application as well as running a singlepage in standalone fashion.*
-
-## GenBrowser client API
-
-Include the gen_browser JavaScript by including the following script tag in the page content.
-
-```html
-<script type="text/javascript" src="/_gen_browser/page.js"></script>
-```
-
-This adds `GenBrowser` to the JavaScript environment.
-
-```js
-var client = new GenBrowser({
-  init: function(state){
-    console.log('Page started', state)
-    return state
-  },
-  handle_info: function(message, state){
-    console.log('Message received', message)
-    return state
-  }
-})
-```
-
-A GenBrowser client has to implement two callbacks.
-
-- `init` called when first connected.
-  The argument to this function is the client config the backent was started with.
-  This should contain the reference to at least one process, normally a named process.
-  For security reasons the client cannot generate it's own process references but must be given them by the server.
-
-- `handle_info` called for every message sent to the browser.
-
-Once connected the client can be used to send messages to any process (client or server) that it knows about.
-These messages can contain references to any pid the client knows about, including itself.
-
-```js
-client.send(client.state.named_process, {text: 'anything', from: client.address})
-```
-
-## Roadmap
-
-
-- Add Docker wrapped example service for JavaScript developers
-- Handle reconnects
-  - Needs to buffer messages when client is not connected
-  - Needs to read last-event-id and resume forwarding
-  - (Later) needs to ack message to clear buffer
-- Put client JavaScript on npm
-- Be able to use GenBrowser within other web projects
-  - Raxx
-  - Plug/Phoenix
-- Redux middleware integration
-- Parsing received messages to structs somehow.
-- Ack message to reduce the size of the mailbox.
-  - prevent reconnecting to some event that has previously been acked.
-    `Clients will reconnect if the connection is closed; a client can be told to stop reconnecting using the HTTP 204 No Content response code.`
-    This might not trigger an onerror, it might be best to on error on the client so sending a 4xx could be better
-- Check signatures
-- Extend to iOS and Android, maybe a better name is GenClient.
-- Configure reconnect timeout.
-- Kill page process if no reconnect before timeout.
-- use PUT vs POST for retries
-- Work out what to do if page process dies.
-  Probably this should be propogated to client, that then restarts or refreshes page. This would be the way to manage deployment and state lives in other processes.
-  When a backend page process dies the EventSource closes, this could be due to reconnecting to fetch events that no longer exist.
-  The browser page may be able to start a new event source and repeat authentication or other process to get data that was persisted.
-- ElixirScript
-
-## Security
-- If id generation secure enough don't need to sign those addresses,
-  However will always need to sign encoded tuples, don't want those to be generated
-- Reconnection id is the security mechanism to act as someone.
-  In what cases does that id get sent again? How can nefarious actors get to that information,
-  EventSource doesn't let you add custom headers.
-
-### OldExamples, Check out https://github.com/CrowdHailer/gen_browser/commit/06c27106a5a3c44988155d9f4e305cab823ad8c5
-
-```js
-GenBrowser.send(client.address, {text: 'Talking to myself'})
-// > {text: "Talking to myself"}
-```
-
-You should see the message written into the browser console
-
-### Talk to a back end process.
-
-```js
-GenBrowser.send(client.state.logger, {text: 'Talking to the server'})
-```
-
-in the iex shell you should see
-```elixir
-"I got this message, %{\"text\" => \"Talking to the server\"}"
-```
-
-### Send a message from the server
-
-Fetch the address of the client page,
-```js
-client.address
-// > "g2gCZAAGZ2xvYmFsaAJkABZFbGl4aXIuR2VuQnJvd3Nlci5QYWdlbQAAAAY2ODA3MzQ="
-```
-
-Use this address to send a message to that page
-
-```elixir
-GenBrowser.send_message("g2gCZAAGZ2xvYmFsaAJkABZFbGl4aXIuR2VuQnJvd3Nlci5QYWdlbQAAAAY2ODA3MzQ=", %{text: "Hello from the server"})
-```
-
-Again it should be visible in the browser console.
-
-### Talk to another browser
-
-There is a named process on the server that will pair up processes that talk to it.
-this will require two browser consoles.
-
-```js
-// console 1
-GenBrowser.send(client.state.pair_up, {pair_me: client.address})
-```
-```js
-// console 2
-GenBrowser.send(client.state.pair_up, {pair_me: client.address})
-```
-
-After both have sent a pair_up message you should see the following logged
-```
-paired with g2gCZAAGZ2xvYmFsaAJkABZFbGl4aXIuR2VuQnJvd3Nlci5QYWdlbQAAAAYwNTUwNjU=
-```
-
-And the pair will be written to the window object
-
-```js
-// console 1
-GenBrowser.send(client.state.pair, {text: 'Hello from another browser'})
-```
-
-This message will have been delivered to browser 2
-```js
-// console 2
-//{text: 'Hello from another browser'}
 ```

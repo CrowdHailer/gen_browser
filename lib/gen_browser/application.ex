@@ -5,12 +5,7 @@ defmodule GenBrowser.Application do
 
   def start(_type, _args) do
     children = [
-      %{
-        id: GenBrowser.Page.Supervisor,
-        start:
-          {Supervisor, :start_link,
-           [[], [strategy: :one_for_one, name: GenBrowser.Page.Supervisor]]}
-      }
+      {DynamicSupervisor, strategy: :one_for_one, name: GenBrowser.MailboxSupervisor}
     ]
 
     opts = [strategy: :one_for_one, name: GenBrowser.Supervisor]
