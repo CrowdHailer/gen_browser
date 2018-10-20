@@ -169,4 +169,64 @@ defmodule GenBrowser.RaxxTest do
     Process.sleep(100)
     assert 0 = Enum.count(:sys.get_state(mailbox).clients)
   end
+
+  describe "Sending messages to an address" do
+    setup %{port: port} do
+      request =
+        Raxx.request(:GET, "http://localhost:#{port}/mailbox")
+        |> Raxx.set_header("accept", ServerSentEvent.mime_type())
+
+      ServerSentEvent.Client.start_link(Forwarder, {self(), request})
+
+      assert_receive %{id: cursor0, lines: [json]}
+
+      assert {:ok, %{"address" => address}} = Jason.decode(json)
+
+      {:ok, address: address}
+    end
+
+    test "invalid JSON is rejected", %{port: port, address: address} do
+      request =
+        Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
+        |> Raxx.set_body("NOT JSON")
+
+      {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
+      assert response.status == 400
+    end
+
+    test "address that is not base64 encoded is rejected", %{port: port} do
+      address = "==="
+
+      request =
+        Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
+        |> Raxx.set_body(Jason.encode!(%{}))
+
+      {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
+      assert response.status == 400
+    end
+
+    test "address that is not a valid term is rejected", %{port: port} do
+      address = Base.url_encode64("===")
+
+      request =
+        Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
+        |> Raxx.set_body(Jason.encode!(%{}))
+
+      {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
+      assert response.status == 400
+    end
+
+    test "which is no longer alive is handled", %{port: port, address: address} do
+      request =
+        Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
+        |> Raxx.set_body(Jason.encode!(%{}))
+
+      {:ok, address_struct} = GenBrowser.Address.decode(address)
+      pid = GenBrowser.Address.whereis(address_struct)
+      :ok = GenServer.stop(pid)
+
+      {:ok, response} = Raxx.SimpleClient.send_sync(request, 2000)
+      assert response.status == 410
+    end
+  end
 end

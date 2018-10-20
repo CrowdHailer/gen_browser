@@ -116,8 +116,6 @@ By signing the event-id this method can be used to secure an individual clients 
 This could just be the redux swarm below.
 There are ways to start new browser windows, this might be fun
 
-### Ensure connection process are removed from mailbox list when they die
-
 ### Clear the server mailbox
 
 Client should be able to send the ability to ack messages and clear up the contents of the server mailbox.

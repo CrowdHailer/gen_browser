@@ -8,7 +8,7 @@ Object.defineProperty(window, 'EventSource', {
 
 const { start } = require('../dist/gen-browser.js')
 
-test('sending messages to the client', async () => {
+test('Sending messages to the client until connection closed', async () => {
   startPromise = start('http://gen-browser.dev/1')
   const source = sources['http://gen-browser.dev/1/mailbox']
 
@@ -25,4 +25,33 @@ test('sending messages to the client', async () => {
 
   var message = await mailbox.receive()
   expect(message).toEqual({pong: true})
+
+  source.emitError()
+  source.emitMessage(event)
+
+  var message = await mailbox.receive()
+  expect(message).toEqual({pong: true})
+
+  source.close()
+  source.emitError()
+
+  return mailbox.receive().catch((error) => {
+    expect(error).toBe('Mailbox has been closed')
+  })
+})
+
+test('Starting a client will be rejected after timeout', async () => {
+  return start('http://gen-browser.dev/2', {timeout: 100}).catch((error) => {
+    expect(error).toBe('Timed out in 100ms.')
+  })
+})
+
+test('Starting a client will be rejected if eventSource will no longer retry', async () => {
+  const promise = start('http://gen-browser.dev/3')
+  const source = sources['http://gen-browser.dev/3/mailbox']
+  source.close()
+  source.emitError()
+  return promise.catch((error) => {
+    expect(error).toBe('Failed to connect to \'http://gen-browser.dev/3/mailbox\'')
+  })
 })

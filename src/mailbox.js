@@ -1,14 +1,18 @@
 import promiseTimeout from './promiseTimeout.js'
 
 export default function Mailbox () {
-  // NOTE there should be a maximum mailbox size
+  // NOTE there should be a maximum mailbox size, slop and reconnect possible?
+  // NOTE there might need to be a function to expose if mailbox closed, only true if closed and empty.
+  // Can use receive with zero timeout?
   // NOTE expose a function to see the number of message in mailbox, probably just called size
   const messages = []
   var awaiting
-  var customHandler
+  var customMessageHandler
+  var customCloseHandler
+  var closed = false
 
   // Pass resolve as a second argument here and the function doesn't need to get defined for each mailbox
-  function standardHandler(message) {
+  function standardMessageHandler(message) {
     messages.push(message)
     if (awaiting) {
       const {resolve: resolve, reject: reject} = awaiting
@@ -17,14 +21,29 @@ export default function Mailbox () {
       resolve(next)
     }
   }
+
+  function standardCloseHandler () {
+    if (awaiting) {
+      const {resolve: resolve, reject: reject} = awaiting
+      awaiting = undefined
+      reject('Mailbox has been closed')
+    }
+  }
+
   // maybe deposit
   this.deliver = function (message) {
-    (customHandler || standardHandler)(message)
+    (customMessageHandler || standardMessageHandler)(message)
+  }
+
+  this.close = function () {
+    // NOTE should an error be raised if closing twice, or should it be idempotent and call nothing.
+    closed = true;
+    (customCloseHandler || standardCloseHandler)()
   }
 
   this.receive = function (options = {}) {
     const milliseconds = options.timeout || 5000
-    if (customHandler) {
+    if (customMessageHandler) {
       throw 'Cannot receive because a custom handler has been set on this mailbox'
     }
     if (awaiting) {
@@ -35,19 +54,27 @@ export default function Mailbox () {
     // Just don't allow deliver to accept undefined
     var receivePromise = new Promise(function(resolve, reject) {
       if (next == undefined) {
-        awaiting = {resolve: resolve, reject: reject}
+        if (closed) {
+          reject('Mailbox has been closed')
+        } else {
+          awaiting = {resolve: resolve, reject: reject}
+        }
       } else {
         resolve(next)
       }
     });
     return promiseTimeout(receivePromise, milliseconds)
   }
-  this.setHandler = function (handler) {
-    if (customHandler == undefined) {
-      customHandler = handler
+  this.setHandler = function (messageHandler, closeHandler) {
+    if (customMessageHandler == undefined) {
+      customMessageHandler = messageHandler
+      customCloseHandler = closeHandler
       var next
       while (next = messages.shift()) {
-        customHandler(next)
+        customMessageHandler(next)
+      }
+      if (closed && customCloseHandler) {
+        customCloseHandler()
       }
     } else {
       throw 'Custom handler has already been set on this mailbox'

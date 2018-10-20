@@ -1,6 +1,5 @@
 FROM elixir:1.7.3
 
-# TODO can use this to have local changes reflected in server
 RUN apt-get update && apt-get install -y inotify-tools
 
 WORKDIR "/opt/app"

@@ -33,10 +33,17 @@ defmodule GenBrowser.Raxx do
   end
 
   def handle_request(request = %{method: :POST, path: ["send", address]}, _state) do
-    {:ok, address} = GenBrowser.Address.decode(address)
-    message = Jason.decode!(request.body)
-    GenBrowser.Address.send_message(address, message)
-    response(:accepted)
+    OK.try do
+      address <- decode_address(address)
+      message <- decode_message(request)
+      _ <- send_message(address, message)
+    after
+      response(:accepted)
+    rescue
+      response = %Raxx.Response{} ->
+        response
+    end
+    |> set_header("access-control-allow-origin", "*")
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
@@ -113,6 +120,42 @@ defmodule GenBrowser.Raxx do
 
       {:error, message} ->
         {:error, response(:forbidden) |> set_body(message)}
+    end
+  end
+
+  defp decode_address(string) do
+    case GenBrowser.Address.decode(string) do
+      {:ok, address} ->
+        {:ok, address}
+
+      {:error, reason} ->
+        {:error,
+         response(:bad_request) |> set_body("Could not decode address for reason '#{reason}'")}
+    end
+  end
+
+  defp decode_message(%{body: body}) do
+    # NOTE could check content type
+    case Jason.decode(body) do
+      {:ok, data} ->
+        {:ok, data}
+
+      _ ->
+        {:error,
+         response(:bad_request)
+         |> set_body("Could not decode message, must be valid JSON")}
+    end
+  end
+
+  def send_message(address, message) do
+    case GenBrowser.Address.send_message(address, message) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, :dead} ->
+        {:error,
+         response(:gone)
+         |> set_body("Could not resolve address")}
     end
   end
 end

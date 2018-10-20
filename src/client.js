@@ -1,14 +1,16 @@
 import Mailbox from './mailbox.js'
+import promiseTimeout from './promiseTimeout.js'
 export { Mailbox }
 // import from backend config function
 export function start (backend, options = {}) {
   // Can use on open to check if the connection is made in time
   // NOTE need to shutdown properly onerror
-  // TODO expose error case, reject promise in case of timeout, error handler in callvac
+  const milliseconds = options.timeout || 5000
   const mailbox = new Mailbox()
+  const mbURL = mailboxURL(backend)
 
-  return new Promise(function(resolve, reject) {
-    const eventSource = new EventSource(mailboxURL(backend))
+  const eventSource = new EventSource(mbURL)
+  const startPromise = new Promise(function(resolve, reject) {
 
     // onmessage is only called if the type is "message"
     // https://stackoverflow.com/questions/9933619/html5-eventsource-listener-for-all-events
@@ -22,6 +24,11 @@ export function start (backend, options = {}) {
         if (event.type != 'message') { throw 'Unexpected event' }
         mailbox.deliver(JSON.parse(event.data))
       }
+      eventSource.onerror = function (error) {
+        if (eventSource.readyState == 2) {
+          mailbox.close()
+        }
+      }
       resolve({
         address: address,
         mailbox: mailbox,
@@ -30,13 +37,16 @@ export function start (backend, options = {}) {
       })
     }
     eventSource.onerror = function (error) {
-      // only in the case of a 204 response will the readyState transition to '2'
-      console.log("READYSTATE", eventSource.readyState)
-      // Needs to call mailbox.close
-      // Which should affect await and handle
-      // console.warn(error)
+      if (eventSource.readyState == 2) {
+        reject('Failed to connect to \'' + mbURL + '\'')
+      }
     }
   });
+  return promiseTimeout(startPromise, milliseconds).catch((error) => {
+    // In case of timeout close the event source, in other cases calling close is idempotent.
+    eventSource.close()
+    throw(error)
+  })
 }
 
 function mailboxURL(backend) {
@@ -51,7 +61,5 @@ function send(backend, address, data) {
   return fetch(sendURL(backend, address), {
     method: 'POST',
     body: JSON.stringify(data),
-    // Not sure that is still necessary
-    mode: 'no-cors'
   })
 }

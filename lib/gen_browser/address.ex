@@ -19,16 +19,28 @@ defmodule GenBrowser.Address do
   def decode(string) do
     case Base.url_decode64(string) do
       {:ok, string} ->
-        case :erlang.binary_to_term(string) do
-          term ->
-            {:ok, new(term)}
+        try do
+          term = :erlang.binary_to_term(string)
+          {:ok, new(term)}
+        rescue
+          ArgumentError ->
+            {:error, :not_a_valid_term}
         end
+
+      :error ->
+        {:error, :not_base64_encoded}
     end
   end
 
   def send_message(address, message) do
-    # TODO check whereis returns a pid
-    send(whereis(address), message)
+    case whereis(address) do
+      pid when is_pid(pid) ->
+        send(pid, message)
+        {:ok, :sent}
+
+      :undefined ->
+        {:error, :dead}
+    end
   end
 
   @doc """
