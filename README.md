@@ -5,26 +5,25 @@
 ## Example
 
 ```js
-// ponger.js
-import { start } from 'gen-browser'
-const { address, mailbox, send, config } = await start('http://localhost:8080')
+// ponger.html
+const client = await GenBrowser.start('http://localhost:8080')
 
-console.log(address)
+console.log(client.address)
 
-mailbox.handle((message) => {
-  send(message.caller, {type: 'pong'})
+client.mailbox.setHandler((message) => {
+  console.log('received message:', message)
+  client.send(message.caller, {type: 'pong'})
 })
 ```
 
 ```js
-// pinger.js
-import { start } from 'gen-browser'
-const { address, mailbox, send, config } = await start('http://localhost:8080')
+// pinger.html
+const client = await GenBrowser.start('http://localhost:8080')
 
 const peer = prompt("Enter a ponger address.")
-send(peer, {type: 'ping', caller: address})
+client.send(peer, {type: 'ping', caller: client.address})
 
-await mailbox.receive({timeout: 5000})
+await client.mailbox.receive({timeout: 5000})
 console.log("Pong received")
 ```
 ```js
@@ -61,9 +60,10 @@ git clone git@github.com:CrowdHailer/gen_browser.git
 cd gen_browser
 ```
 
-Make sure the JavaScript bundle is built
+Make sure the JavaScript bundle is built.
 
 ```
+npm install
 npm run build
 ```
 
@@ -76,7 +76,7 @@ docker build -t gen-browser . && docker run -it -p 8080:8080 gen-browser
 Or, if you have Elixir installed but not docker, mix can be used directly
 
 ```
-mix run examples/standalone.exs
+mix run --no-halt examples/standalone.exs
 ```
 
 Look for help with JS API docs

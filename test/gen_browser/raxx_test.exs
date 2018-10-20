@@ -20,6 +20,11 @@ defmodule Forwarder do
     {:stop, :normal, test_pid}
   end
 
+  def handle_info(message, test_pid) do
+    IO.inspect(message)
+    {:noreply, test_pid}
+  end
+
   def handle_event(event, test_pid) do
     send(test_pid, event)
     test_pid
@@ -42,10 +47,12 @@ defmodule GenBrowser.RaxxTest do
       Raxx.request(:GET, "http://localhost:#{port}/mailbox")
       |> Raxx.set_header("accept", ServerSentEvent.mime_type())
 
-    ServerSentEvent.Client.start_link(Forwarder, {self, request})
+    ServerSentEvent.Client.start_link(Forwarder, {self(), request})
 
-    assert_receive %{type: "__gen_browser__/init", id: cursor0, lines: [json]}
-    assert {:ok, %{"address" => address, "config" => config}} = Jason.decode(json)
+    assert_receive %{id: cursor0, lines: [json]}
+
+    assert {:ok, %{"address" => address, "config" => config, "type" => "__gen_browser__/init"}} =
+             Jason.decode(json)
 
     request =
       Raxx.request(:POST, "http://localhost:#{port}/send/#{address}")
@@ -67,7 +74,7 @@ defmodule GenBrowser.RaxxTest do
       |> Raxx.set_header("accept", ServerSentEvent.mime_type())
       |> Raxx.set_header("last-event-id", cursor0)
 
-    ServerSentEvent.Client.start_link(Forwarder, {self, request})
+    ServerSentEvent.Client.start_link(Forwarder, {self(), request})
 
     assert_receive %{id: ^cursor1, lines: ["{\"ping\":1}"]}
     assert_receive %{id: ^cursor2, lines: ["{\"ping\":2}"]}
@@ -79,7 +86,7 @@ defmodule GenBrowser.RaxxTest do
       |> Raxx.set_header("accept", ServerSentEvent.mime_type())
       |> Raxx.set_header("last-event-id", cursor1)
 
-    ServerSentEvent.Client.start_link(Forwarder, {self, request})
+    ServerSentEvent.Client.start_link(Forwarder, {self(), request})
 
     assert_receive %{id: ^cursor2, lines: ["{\"ping\":2}"]}
 

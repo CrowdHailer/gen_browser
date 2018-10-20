@@ -26,6 +26,7 @@ defmodule GenBrowser.MixProject do
       {:ace, "~> 0.17.0"},
       {:server_sent_event, "~> 0.4.2"},
       {:jason, "~> 1.0"},
+      {:ok, "~> 2.0.0"},
       {:exsync, "~> 0.2.3", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]

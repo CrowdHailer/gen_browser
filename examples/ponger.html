@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Ponger</title>
+</head>
+<body>
+  <script type="text/javascript" src="../dist/gen-browser.js"></script>
+  <script type="text/javascript">
+    (async () => {
+      const client = await GenBrowser.start('http://localhost:8080')
+
+      console.log(client.address)
+
+      client.mailbox.setHandler((message) => {
+        console.log('received message:', message)
+        client.send(message.caller, {type: 'pong'})
+      })
+    })()
+  </script>
+</body>
+</html>

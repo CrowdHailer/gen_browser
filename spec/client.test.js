@@ -6,14 +6,14 @@ Object.defineProperty(window, 'EventSource', {
   value: EventSource,
 });
 
-const { start } = require('../dist/comms.js')
+const { start } = require('../dist/gen-browser.js')
 
 test('sending messages to the client', async () => {
-  startPromise = start('http://comms.dev/1')
-  const source = sources['http://comms.dev/1/mailbox']
+  startPromise = start('http://gen-browser.dev/1')
+  const source = sources['http://gen-browser.dev/1/mailbox']
 
-  var data = '{"address":"myAddress","config":{"a":1,"b":2}}'
-  var event = new MessageEvent('__comms__/init', {data: data})
+  var data = '{"type":"__gen_browser__/init","address":"myAddress","config":{"a":1,"b":2}}'
+  var event = new MessageEvent('message', {data: data})
   source.emitMessage(event)
 
   const {address, mailbox, send, config} = await startPromise

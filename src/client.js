@@ -10,10 +10,11 @@ export function start (backend, options = {}) {
   return new Promise(function(resolve, reject) {
     const eventSource = new EventSource(mailboxURL(backend))
 
+    // onmessage is only called if the type is "message"
+    // https://stackoverflow.com/questions/9933619/html5-eventsource-listener-for-all-events
     eventSource.onmessage = function (event) {
-      if (event.type != '__comms__/init') { reject('Server emitted incorrect first event') }
-
-      const {address, config} = JSON.parse(event.data)
+      const {type, address, config} = JSON.parse(event.data)
+      if (type != '__gen_browser__/init') { reject('Server emitted incorrect first event') }
 
       eventSource.onmessage = function (event) {
         // Use event type message becuase it's the default so one less field to send.
@@ -40,7 +41,7 @@ function sendURL(backend, address) {
 }
 
 function send(backend, address, data) {
-  return fetch(send_url(backend, address), {
+  return fetch(sendURL(backend, address), {
     method: 'POST',
     body: JSON.stringify(data),
     // Not sure that is still necessary
