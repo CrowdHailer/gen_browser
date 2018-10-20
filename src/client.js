@@ -29,6 +29,13 @@ export function start (backend, options = {}) {
         config: config
       })
     }
+    eventSource.onerror = function (error) {
+      // only in the case of a 204 response will the readyState transition to '2'
+      console.log("READYSTATE", eventSource.readyState)
+      // Needs to call mailbox.close
+      // Which should affect await and handle
+      // console.warn(error)
+    }
   });
 }
 

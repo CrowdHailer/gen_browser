@@ -84,6 +84,8 @@ Look for help with JS API docs
 
 ## Server API
 
+GenBrowser.start_link(config)
+
 ## Roadmap
 
 ### Pinger/ponder example
