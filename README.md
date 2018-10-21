@@ -12,7 +12,7 @@ console.log(client.address)
 
 client.mailbox.setHandler((message) => {
   console.log('received message:', message)
-  client.send(message.caller, {type: 'pong'})
+  client.send(message.from, {type: 'pong'})
 })
 ```
 
@@ -20,21 +20,14 @@ client.mailbox.setHandler((message) => {
 // pinger.html
 const client = await GenBrowser.start('http://localhost:8080')
 
-const peer = prompt("Enter a ponger address.")
-client.send(peer, {type: 'ping', caller: client.address})
+var peer = prompt("Enter a ponger address.")
+if (peer == '') {
+  peer = client.config.logger
+}
+client.send(peer, {type: 'ping', from: client.address})
 
 await client.mailbox.receive({timeout: 5000})
 console.log("Pong received")
-```
-```js
-// Global is an address which can be used to globally register names
-const { global } = config
-
-send(registry, {register: 'alice', address: mailbox.address})
-
-
-// Can decode the address in the final process
-send(registry, {lookup: 'alice', reply: mailbox.address})
 ```
 
 Once started `gen-browser` has four things.
@@ -70,7 +63,8 @@ npm run build
 To start the backend use Docker as follows.
 
 ```
-docker build -t gen-browser . && docker run -it -p 8080:8080 gen-browser
+docker build -t gen-browser .
+docker run -it -p 8080:8080 gen-browser iex -S mix run --no-halt examples/standalone.exs
 ```
 
 Or, if you have Elixir installed but not docker, mix can be used directly
@@ -78,9 +72,6 @@ Or, if you have Elixir installed but not docker, mix can be used directly
 ```
 mix run --no-halt examples/standalone.exs
 ```
-
-Look for help with JS API docs
-
 
 ## Server API
 
@@ -206,14 +197,6 @@ Maybe.
 Let me know what you think.
 
 ## Roadmap
-
-### Pinger/ponder example
-
-- Registry should accept a ping message
-- Ping to the console
-- Ping to some other browser
-
-could add logger to standard setup
 
 ### Integration with raxx and/or plug
 

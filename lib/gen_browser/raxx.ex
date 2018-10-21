@@ -13,7 +13,7 @@ defmodule GenBrowser.Raxx do
       {mailbox_id, cursor} <- decode_last_event_id(request, state.secrets)
 
       messages <-
-        GenBrowser.Mailbox.read(mailbox_id, cursor, GenBrowser.MailboxSupervisor, %{foo: 5})
+        GenBrowser.Mailbox.read(mailbox_id, cursor, GenBrowser.MailboxSupervisor, state.config)
     after
       response_head =
         response(:ok)

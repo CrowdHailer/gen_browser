@@ -5,18 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Pinger</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+  <link rel="stylesheet" href="https://cdn.rawgit.com/necolas/normalize.css/master/normalize.css">
+  <link rel="stylesheet" href="https://cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">
 </head>
 <body>
+  <main style="max-width:420px;margin-left:auto;margin-right:auto;">
+    <h1>Pinger</h1>
+    <h2>GenBrowser</h2>
+    <p id="ready-state">Loading ...</p>
+    <form>
+      <label>Enter address</label>
+      <input type="text" name="" id="ponger-address" onClick="this.select()">
+      <button type="button" onclick="sendPing()">Send Ping</button>
+    </form>
+    <hr>
+    <table>
+      <thead>
+        <tr>
+          <th>Message</th>
+          <th>Received at</th>
+          <th>From address</th>
+        </tr>
+      </thead>
+      <tbody id="output-table">
+      </tbody>
+    </table>
+  </main>
   <script type="text/javascript" src="../dist/gen-browser.js"></script>
   <script type="text/javascript">
-    (async () => {
-      const client = await GenBrowser.start('http://localhost:8080')
+    const $readyState = document.getElementById('ready-state')
+    const $input = document.getElementById('ponger-address')
+    const $output = document.getElementById('output-table')
+    async function sendPing() {
+      var ponger
+      if ($input.value == '') {
+        ponger = window.client.config.logger
+      } else {
+        ponger = $input.value
+      }
+      window.client.send(ponger, {type: 'ping', from: window.client.address})
 
-      const peer = prompt("Enter a ponger address.")
-      client.send(peer, {type: 'ping', caller: client.address})
-
-      await client.mailbox.receive({timeout: 5000})
+      const reply = await window.client.mailbox.receive({timeout: 5000})
       console.log("Pong received")
+
+      if (reply.type == 'pong') {
+        const date = new Date().toLocaleTimeString();
+        const [_, signature] = reply.from.split('--')
+        const peer = signature.substring(0, 20) + '...'
+        const newLine = '<td>pong</td><td>' + date + '</td><td>' + peer + '</td>'
+        $output.innerHTML = newLine + $output.innerHTML
+      }
+    }
+    (async () => {
+      $readyState.innerHTML = 'Connecting ...'
+      try {
+        window.client = await GenBrowser.start('http://localhost:8080')
+        console.log(window.client)
+        $readyState.innerHTML = 'Ready'
+      } catch (error) {
+        $readyState.innerHTML = error
+      }
     })()
   </script>
 </body>

@@ -5,19 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Ponger</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+  <link rel="stylesheet" href="https://cdn.rawgit.com/necolas/normalize.css/master/normalize.css">
+  <link rel="stylesheet" href="https://cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">
 </head>
 <body>
+  <main style="max-width:420px;margin-left:auto;margin-right:auto;">
+    <h1>Pinger</h1>
+    <h2>GenBrowser</h2>
+    <p id="ready-state">Loading ...</p>
+    <label>Ponger address</label>
+    <input id="ponger-address" onClick="this.select()"></input>
+    <hr>
+    <table>
+      <thead>
+        <tr>
+          <th>Message</th>
+          <th>Received at</th>
+          <th>From address</th>
+        </tr>
+      </thead>
+      <tbody id="output-table">
+      </tbody>
+    </table>
+  </main>
   <script type="text/javascript" src="../dist/gen-browser.js"></script>
   <script type="text/javascript">
+    const $readyState = document.getElementById('ready-state')
+    const $pongerAddress = document.getElementById('ponger-address')
+    const $output = document.getElementById('output-table');
+
     (async () => {
-      const client = await GenBrowser.start('http://localhost:8080')
+      $readyState.innerHTML = 'Connecting ...'
+      try {
+        const client = await GenBrowser.start('http://localhost:8080')
+        console.log(client.address)
+        $readyState.innerHTML = 'Ready'
+        $pongerAddress.value = client.address
 
-      console.log(client.address)
+        client.mailbox.setHandler((message) => {
+          console.log('received message:', message)
+          if (message.type == 'ping') {
+            const date = new Date().toLocaleTimeString();
+            const [_, signature] = message.from.split('--')
+            const peer = signature.substring(0, 20) + '...'
+            const newLine = '<td>pong</td><td>' + date + '</td><td>' + peer + '</td>'
+            $output.innerHTML = newLine + $output.innerHTML
+            client.send(message.from, {type: 'pong', from: client.address})
+          }
+        })
 
-      client.mailbox.setHandler((message) => {
-        console.log('received message:', message)
-        client.send(message.caller, {type: 'pong'})
-      })
+        window.client = client
+      } catch (error) {
+        $readyState.innerHTML = error
+      }
     })()
   </script>
 </body>

@@ -28,9 +28,13 @@ test('receiving a message will resolve when next message is available', async ()
 
 test('Receive will be rejected after timeout', async () => {
   const mailbox = new Mailbox()
-  return mailbox.receive({timeout: 100}).catch((error) => {
+  await mailbox.receive({timeout: 100}).catch((error) => {
     expect(error).toBe('Timed out in 100ms.')
   })
+  const promise = mailbox.receive()
+  const firstMessage = {text: 'first message'}
+  mailbox.deliver(firstMessage)
+  expect(await promise).toBe(firstMessage)
 })
 
 test('Only one receive call can be pending at a time', async () => {
@@ -117,4 +121,12 @@ test('Adding a custom handler is automatically called if the mailbox has closed'
   mailbox.setHandler((m) => {message = m}, () => {closed = true})
   expect(message).toBe(firstMessage)
   expect(closed).toBe(true)
+})
+
+test('Closing a mailbox twice is an error', async () => {
+  const mailbox = new Mailbox()
+  mailbox.close()
+  expect(() => {
+    mailbox.close()
+  }).toThrow('Mailbox is already closed')
 })

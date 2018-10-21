@@ -27,6 +27,8 @@ export default function Mailbox () {
       const {resolve: resolve, reject: reject} = awaiting
       awaiting = undefined
       reject('Mailbox has been closed')
+    } else {
+      console.log('Mailbox has been closed')
     }
   }
 
@@ -36,7 +38,9 @@ export default function Mailbox () {
   }
 
   this.close = function () {
-    // NOTE should an error be raised if closing twice, or should it be idempotent and call nothing.
+    if (closed) {
+      throw('Mailbox is already closed')
+    }
     closed = true;
     (customCloseHandler || standardCloseHandler)()
   }
@@ -63,7 +67,11 @@ export default function Mailbox () {
         resolve(next)
       }
     });
-    return promiseTimeout(receivePromise, milliseconds)
+    return promiseTimeout(receivePromise, milliseconds).catch((error) => {
+      // In case of timeout awaiting will promise gets rejected.
+      awaiting = undefined
+      throw(error)
+    })
   }
   this.setHandler = function (messageHandler, closeHandler) {
     if (customMessageHandler == undefined) {
