@@ -4,6 +4,8 @@
 
 ## Example
 
+To experiment with a similar example follow the instructions to set up the [Playground](#playground).
+
 ```js
 // ponger.html
 const client = await GenBrowser.start('http://localhost:8080')
@@ -73,6 +75,8 @@ Or, if you have Elixir installed but not docker, mix can be used directly
 SECRET=s3cr3t iex -S mix run --no-halt examples/standalone.exs
 ```
 
+Open `examples/pinger.html` and `examples/ponger.html` in your browser.
+
 ## Server API
 
 Addresses can just as easily be used from the backend.
@@ -97,6 +101,12 @@ iex> flush
 # }
 # :ok
 ```
+
+Any server process can be added to the clients config at startup.
+
+See the [standalone example](examples/standalone.exs)
+
+Or follow the docs on [hexdoc.pm](https://hexdocs.pm/gen_browser/readme.html)
 
 ## Notes
 
@@ -250,12 +260,73 @@ Let me know what you think.
 
 ## Roadmap
 
+### Write talk about Actors for the browser
+
+Investigate Scala/JS/Redux events.
+
 ### Integration with raxx and/or plug
 
-### Demonstrate with Redux
+### Switch internal message structure for event
 
-This could just be the redux swarm below.
-There are ways to start new browser windows, this might be fun
+Define a struct, don't have a type field, this is now just part of the data.
+
+### Develop a general purpose address structure
+
+My suggesion for this is probably `{:comms, module, term}`,
+where the module implementes the `:comms_address` behaviour.
+Whe the message is sent it should call `module.dispatch(term, message)`
+
+This tuple could also wrap other kinds of address e.g. `{:comms, pid}` and `{:comms, {:via, module, term}}`.
+The value of this structure is that When mapping through data to send this can be matched on an securely serialized.
+
+By this point we are very close to having `{mod, func, args}` as the structure of an address.
+I guess the above alows a behaviour to have more than one function that can be used in different cases.
+
+General purpose address structure will need information on starting processes.
+
+Need to blog about how create new process is not a thing.
+
+Actor model only needs two rules.
+Analogy is employers are hired, send message to the recruitment deparatment, not spawned.
+
+Address is abstract key for linearizability.
+Create a `Comms.HTTP` for sending messages to an endpoint, or even a session?
+
+In most cases send to a destination.
+e.g.
+```
+send(email_address, message)
+# better than
+send(mailer, message+address)
+```
+The fact it goes through a mailer process is just an implementation detail.
+
+linearizability should be enforcable by making a call, MyModule.dispatch could return conflict.
+
+Finally once the above is proved extract addresses and make a Comms.Monad and a general Comms.Worker.
+This work should be done after discovering if a general equivalent to `:gen.call` and `Process.monitor` are needed.
+
+Pure messages with comms means no untestable side effects EVER.
+How things are modelled through session types. By this point we might need Rust for affine types.
+
+### Better encoding decoding
+
+- Is it possible to encode and sign with a secret.
+  The encode protocol would need to be able to pass custom options.
+- What is the best way to iterate through an object before it gets jsoned
+
+If not then `GenBrowser.Address` does not need to exist as a struct, because the protocol for json encoding will not be used.
+
+Move the iterate through JSON function to web.
+
+### Work out how to provide a validation layer for messages as they are received by server
+
+Addresses should not need to know how to decode messages, there might be more than one transport format for messages.
+However it is possible that addresses could also opt in to a second behaviour such as `GenBrowser.JSONTransport`
+Should return error argument error.
+I'm not sure it even makes sense to have addresses have a binary format, given general choice they would not choose to be url safe
+
+`send` already returns a promise, awaiting on this could at least validate message was legit
 
 ### Clear the server mailbox
 
@@ -271,13 +342,14 @@ Finally we need to signal to the client in cases when a reconnect to a dead mail
 `Clients will reconnect if the connection is closed; a client can be told to stop reconnecting using the HTTP 204 No Content response code.`
 This might not trigger an onerror, it might be best to on error on the client so sending a 4xx could be better
 
-### Work out how to provide a validation layer for messages as they are received by server
-
-`send` already returns a promise, awaiting on this could at least validate message was legit
-
 ### Redux middleware
 
 This is the comms goal, i.e. don't call send, just return a list of addresses and messages thus making the whole thing pure.
+
+### Demonstrate with Redux
+
+This could just be the redux swarm below.
+There are ways to start new browser windows, this might be fun
 
 ### Support a multi-node backend
 
@@ -286,3 +358,7 @@ To support a multi node backend it is required to guarantee that only on server 
 However because we know when to create a new mailbox, and they are always started with a random id, it might be the case that a split brain is not a problem.
 The effect of a split brain would be sometimes thinking a server mailbox had died when it was infact in the other partition.
 This would require setting up a new mailbox, but this eventuallity already has to be accounted for.
+
+### Work out if client can generate own address
+
+Then no need to await at startup
