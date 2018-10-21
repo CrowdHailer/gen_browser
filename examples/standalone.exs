@@ -30,11 +30,19 @@ defmodule MyLogger do
   end
 end
 
-secrets = ["not_secret_at_all"]
+secrets =
+  case System.get_env("SECRET") do
+    nil ->
+      raise "Need to set a secret"
+
+    secret ->
+      [secret]
+  end
+
 MyLogger.start_link(secrets)
 
-Ace.HTTP.Service.start_link(
-  {GenBrowser.Raxx, %{secrets: secrets, config: %{logger: GenBrowser.Address.new(MyLogger)}}},
+GenBrowser.start_link(%{logger: GenBrowser.Address.new(MyLogger)},
+  secrets: secrets,
   port: 8080,
   cleartext: true
 )

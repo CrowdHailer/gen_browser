@@ -55,12 +55,15 @@ defmodule GenBrowser.Address do
 
       {:global, term} ->
         :global.whereis_name(term)
+
+      value when is_pid(value) ->
+        value
     end
   end
 end
 
-defimpl Jason.Encoder, for: GenBrowser.Address do
-  def encode(address, _options) do
-    "\"#{GenBrowser.Address.encode(address)}\""
-  end
-end
+# defimpl Jason.Encoder, for: GenBrowser.Address do
+#   def encode(address, _options) do
+#     "\"#{GenBrowser.Address.encode(address)}\""
+#   end
+# end

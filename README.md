@@ -39,7 +39,7 @@ Once started `gen-browser` has four things.
 3. A function to send messages, that takes the target address and messages as arguments.
   The message must be serialisable to JSON.
 4. Config from the server, this can be anything including addresses for processes on the backend,
-  such as the global registry process in the examples above.
+  such as the logger process in the examples above.
 
 *Note:* Receive cannot be called on mailbox that has a custom handler installed.
 
@@ -64,37 +64,38 @@ To start the backend use Docker as follows.
 
 ```
 docker build -t gen-browser .
-docker run -it -p 8080:8080 gen-browser iex -S mix run --no-halt examples/standalone.exs
+docker run -it -e SECRET=s3cr3t -p 8080:8080 gen-browser iex -S mix run --no-halt examples/standalone.exs
 ```
 
 Or, if you have Elixir installed but not docker, mix can be used directly
 
 ```
-mix run --no-halt examples/standalone.exs
+SECRET=s3cr3t iex -S mix run --no-halt examples/standalone.exs
 ```
 
 ## Server API
 
-GenBrowser.start_link(config)
-## Docs
+Addresses can just as easily be used from the backend.
 
-### Starting the backend
+### Send a message to a client
 
-```elixir
-GenServer.start_link(SomeModule, state, name: SomeModule)
+First fetch the address of a running ponger browser.
 
-# The initial client state.
-# once initialized clients will be able to send messages directly to the GenServer called `SomeModule`
-client_state = %{"named_process" => SomeModule}
+In the server console
 
-# The page that is going to be playing the role of a process in our system.
-page_content = File.read!(Path.join(__DIR__, "my_page.html"))
+```sh
+iex> address = "g2gCZAAGZ2xvYmFsaAJkABlFbGl4aXIuR2VuQnJvd3Nlci5NYWlsYm94bQAAAAxWR0hFWFkwZWExUEg=--qp7BCZMlqtGpO7nUDwQmZC4CkA-tPZE56uVISq6xEcU="
+iex> {:ok, ponger} = GenBrowser.decode_address(address)
+# {:ok, {:global, {GenBrowser.Mailbox, "VGHEXY0ea1PH"}}}
 
-GenBrowser.Standalone.start_link(client_config,
-  page_content: content,
-  port: 8080,
-  cleartext: true
-)
+iex> GenBrowser.send(ponger, %{"type" => "ping", "from" => GenBrowser.Address.new(self)})
+# {:ok, :sent}
+iex> flush
+# %{
+#   "from" => "g2gCZAAGZ2xvYmFsaAJkABlFbGl4aXIuR2VuQnJvd3Nlci5NYWlsYm94bQAAAAxWR0hFWFkwZWExUEg=--qp7BCZMlqtGpO7nUDwQmZC4CkA-tPZE56uVISq6xEcU=",
+#   "type" => "pong"
+# }
+# :ok
 ```
 
 ## Notes
@@ -110,9 +111,14 @@ Check the [Roadmap](#Roadmap) for what I'm working on next.
 Client/Server is just another type of distributed system.
 What if the whole system can be treated as a group of processes that send messages to each other.
 
-Currently it is easy to send messages client to server.
+#### Goal 1
 
-The goal of this project is to make it just as easy to send messages client to server and even client to client.
+Make it just as easy to send messages client to server and even client to client.
+
+#### Goal 2
+
+Model all communication as message passing so the system can be verified using session types or similar
+
 ### Whats in a name?
 
 The name `GenBrowser` comes from the erlang/Elixir terms for generalised servers; `GenServer`.
@@ -146,7 +152,13 @@ This will involve a server round trip.
 
 ### Clients are temporary
 
-### Messages not understood
+The client created from `GenBrowser.start` is deliberatly temporary, it is analogous to a process on the server side.
+It is perhaps closer to the concept of a session.
+
+If the user wants to access some persistent data they should send a message, probably with authentication.
+This message should indicate the persistent data to access and the current session to forward it to.
+
+### Messages that are not understood
 
 Messages can always not be understood by the server.
 When using `send` the response is 202 accepted, this just means the server in general was happy the target process might not know how to handle the message.
@@ -157,6 +169,46 @@ In this case the system has to rely on timeouts and crashlogging.
 To tackle this problem a standard message container could be provided,
 it might include a standard format for sender, and perhaps tracing.
 Such a standard format could easily be built on top of this library.
+
+### Client outbound queue
+
+The client is able to handle network interuptions on the receive side.
+However if sending during a network interuption then the send will fail.
+
+Messages could be automatically retried in case of 5xx response (but not 4xx),
+This would require knowledge about the idempotency of the message in question.
+`dispatch(address, message, retry)` where retry is true/false or function taking error.
+
+### Ordering between two clients
+
+The order of messages in the server mailbox is kept when streaming these to the client.
+This does not guarantee ordering of messages sent from a client to a server process.
+There is no correlation between requests sent.
+
+The client could queue messages and only process the next once it has received an ack that the first is in the mailbox.
+This does not need to be inefficient as it could send a list of messages in the case that it has multiple messages in the queue.
+
+Simply queuing before sending would not guarantee order, the HTTP handling process on the backend would be different for each process.
+
+### Addresses are large
+
+Address encoding just makes use of `:erlang.term_to_binary` + `Base.url_encode64`.
+With the addition of signing this makes for very large address strings.
+
+If the encode function knew about all possible things that could be encoded then encoding could be super effiecient.
+Say a single byte for which module will following bytes just handled by that module.
+
+This would need some top level information about what spec the address was created with,
+once things are sent to the client they can survive redeploys.
+
+Connection would need to communicate that spec version `/mailbox/?spec=v1.1`
+The secret for signing could be the spec id, however that probably just increases the risk of leaking the secret.
+
+### Every event involves a signature
+
+As it stands every event involves calculating a digest.
+It is probably safe to sign just the mailbox_id and append the count number to the signed mailbox_id.
+Currently the count number is appended to the mailbox_id and that combined cursor signed
 
 ### GenCall
 
@@ -200,8 +252,6 @@ Let me know what you think.
 
 ### Integration with raxx and/or plug
 
-Document server API
-
 ### Demonstrate with Redux
 
 This could just be the redux swarm below.
@@ -228,3 +278,11 @@ This might not trigger an onerror, it might be best to on error on the client so
 ### Redux middleware
 
 This is the comms goal, i.e. don't call send, just return a list of addresses and messages thus making the whole thing pure.
+
+### Support a multi-node backend
+
+To support a multi node backend it is required to guarantee that only on server mailbox can exist for each client(mailbox_id)
+`:global` can suffer split brain and so might not be an adequate solution.
+However because we know when to create a new mailbox, and they are always started with a random id, it might be the case that a split brain is not a problem.
+The effect of a split brain would be sometimes thinking a server mailbox had died when it was infact in the other partition.
+This would require setting up a new mailbox, but this eventuallity already has to be accounted for.

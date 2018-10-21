@@ -38,7 +38,7 @@ defmodule GenBrowser.RaxxTest do
 
   setup do
     {:ok, server} =
-      Ace.HTTP.Service.start_link({GenBrowser.Raxx, %{secrets: ["secret"]}},
+      Ace.HTTP.Service.start_link({GenBrowser.Raxx, %{secrets: ["secret"], config: %{}}},
         port: 0,
         cleartext: true
       )
