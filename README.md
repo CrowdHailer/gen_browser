@@ -2,6 +2,8 @@
 
 **Transparent bi-directional communication for clients, servers and more**
 
+ GenBrowser gives every client a unique identifier that can be used to send messages to/from/between clients.
+
 ## Example
 
 To experiment with a similar example follow the instructions to set up the [Playground](#playground).
@@ -264,6 +266,8 @@ Let me know what you think.
 
 Investigate Scala/JS/Redux events.
 
+Send message to email address demo.
+
 ### Integration with raxx and/or plug
 
 ### Switch internal message structure for event
@@ -291,6 +295,20 @@ Analogy is employers are hired, send message to the recruitment deparatment, not
 
 Address is abstract key for linearizability.
 Create a `Comms.HTTP` for sending messages to an endpoint, or even a session?
+Create a `Comm.CallReply` for replying to a call.
+
+```elixir
+def handle({:comms_call, from, :x}, state) do
+  {[{from, :y}], state}
+end
+```
+
+The other end will need to handle a Down/Timeout message, they should probably be the same form with different reason
+```elixir
+def handle({:comms_fail, reason, refence}, state) do
+  {[{from, :y}], state}
+end
+```
 
 In most cases send to a destination.
 e.g.
@@ -302,12 +320,6 @@ send(mailer, message+address)
 The fact it goes through a mailer process is just an implementation detail.
 
 linearizability should be enforcable by making a call, MyModule.dispatch could return conflict.
-
-Finally once the above is proved extract addresses and make a Comms.Monad and a general Comms.Worker.
-This work should be done after discovering if a general equivalent to `:gen.call` and `Process.monitor` are needed.
-
-Pure messages with comms means no untestable side effects EVER.
-How things are modelled through session types. By this point we might need Rust for affine types.
 
 ### Better encoding decoding
 
@@ -326,7 +338,9 @@ However it is possible that addresses could also opt in to a second behaviour su
 Should return error argument error.
 I'm not sure it even makes sense to have addresses have a binary format, given general choice they would not choose to be url safe
 
-`send` already returns a promise, awaiting on this could at least validate message was legit
+`send` already returns a promise, awaiting on this could at least validate message was legit.
+
+Do an example with Ecto as the form validation.
 
 ### Clear the server mailbox
 
@@ -358,6 +372,74 @@ To support a multi node backend it is required to guarantee that only on server 
 However because we know when to create a new mailbox, and they are always started with a random id, it might be the case that a split brain is not a problem.
 The effect of a split brain would be sometimes thinking a server mailbox had died when it was infact in the other partition.
 This would require setting up a new mailbox, but this eventuallity already has to be accounted for.
+
+### Composition of Effectful code
+
+https://elixirforum.com/t/functionaly-pure-message-passing/11173
+
+ Finally once the above is proved extract addresses and make a Comms.Monad and a general Comms.Worker.
+ This work should be done after discovering if a general equivalent to `:gen.call` and `Process.monitor` are needed.
+
+ Pure messages with comms means no untestable side effects EVER.
+ How things are modelled through session types. By this point we might need Rust for affine types.
+
+```elixir
+Comms.for(message, state) do
+  :ok <- send(a, :b)
+  :ok <- send(foo, :bar)
+after
+  state
+end
+```
+
+*Macro can rewrite address, to proxy affine types. However it's always possible to just assign variable earlier*
+`{:ok, a} <- send(a, :b)`
+
+Q? - how to expose error case if allowing error cases?
+
+A good proof of concept of this should be in `Raxx.SimpleServer`
+
+Needs a process that never needs starting. Is just transparently started,
+Try Comms.Worker started locally, generated with id in place.
+Uses global and relies on generated id really being random.
+Can run the risk of having a hot node.
+
+### Typing message sending
+
+Ping pong typed example using dialyzer.
+
+Look at existing work in comms/pachyderm.
+
+To share this will be a recipe for working with dialyzer because lack of generics prevent solution being exported from a library.
+
+### Session type interactions
+
+This probably requires pure interactions.
+Autowriting is a pretend for affine types.
+Need multiparty to handle timout.
+
+This is the point I am likely to seriously revist Rust
+
+### Typed transport
+
+Limited state types.
+
+This builds on the fact that all the even numbers can be represented by droping the last bit,
+and ensuring your type knows that they are even numbers.
+
+If the language primative is binaries or maybe integers, both of those must exist in a range.
+so instead of JSON where you can have any integer you have a spec which always includes an upper limit on the integer
+
+Works for all countable sets (not transdentals) but I thnk this is a limit using computers has.
+
+This is useful for sending things over the wire.
+Opening a protocol probably has a hash of the protocol spec.
+
+Also type operations can always be shown to go to a decreasing number of outcomes, and therefore total.
+
+Once comms monad exists having totallity in a language is desirable.
+
+The only language I know with this trait is idris.
 
 ### Work out if client can generate own address
 
