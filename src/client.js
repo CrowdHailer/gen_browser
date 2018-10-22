@@ -60,6 +60,11 @@ function sendURL(backend, address) {
 function send(backend, address, data) {
   return fetch(sendURL(backend, address), {
     method: 'POST',
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      // "Content-Type": "application/x-www-form-urlencoded",
+    },
     body: JSON.stringify(data),
+    // mode: 'no-cors'
   })
 }
