@@ -1,4 +1,73 @@
 defmodule GenBrowser.Web do
+  def decode_last_event_id(last_event_id, secrets) do
+    invalid_format_message =
+      "Reconnection failed to due incorrect format of 'last-event-id' header"
+
+    case last_event_id do
+      nil ->
+        {:ok, {nil, nil}}
+
+      last_event_id ->
+        case GenBrowser.Web.unwrap_secure(last_event_id, secrets) do
+          {:ok, reconnect_id} ->
+            case String.split(reconnect_id, ":") do
+              [mailbox_id, string_cursor] ->
+                case Integer.parse(string_cursor) do
+                  {cursor, ""} ->
+                    {:ok, {mailbox_id, cursor}}
+
+                  _ ->
+                    {:error, invalid_format_message}
+                end
+
+              _other ->
+                {:error, invalid_format_message}
+            end
+
+          _ ->
+            {:error, invalid_format_message}
+        end
+    end
+  end
+
+  def encode_message(%{id: id, data: data, type: :init}, secrets) do
+    data = Map.merge(data, %{type: "__gen_browser__/init"})
+    wrapped_data = wrap_all_addresses(data, secrets)
+
+    ServerSentEvent.serialize(
+      Jason.encode!(wrapped_data),
+      id: GenBrowser.Web.wrap_secure(id, secrets)
+    )
+  end
+
+  def encode_message(%{id: id, data: data}, secrets) do
+    data = wrap_all_addresses(data, secrets)
+
+    ServerSentEvent.serialize(Jason.encode!(data), id: GenBrowser.Web.wrap_secure(id, secrets))
+  end
+
+  defp wrap_all_addresses(address = %GenBrowser.Address{}, secrets) do
+    GenBrowser.Web.wrap_secure(GenBrowser.Address.encode(address), secrets)
+  end
+
+  defp wrap_all_addresses(data = %_struct{}, _secrets) do
+    # leave as is assume they can handle protocols
+    data
+  end
+
+  defp wrap_all_addresses(map = %{}, secrets) do
+    Enum.map(map, fn {key, value} -> {key, wrap_all_addresses(value, secrets)} end)
+    |> Enum.into(%{})
+  end
+
+  defp wrap_all_addresses(list = [], secrets) do
+    Enum.map(list, fn value -> wrap_all_addresses(value, secrets) end)
+  end
+
+  defp wrap_all_addresses(other, _secrets) do
+    other
+  end
+
   def wrap_secure(data, [secret | _previous_secrets]) do
     # Expects data to already be safe, i.e. no "--"
     digest = safe_digest(data, secret)
