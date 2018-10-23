@@ -83,6 +83,36 @@ Open `examples/pinger.html` and `examples/ponger.html` in your browser.
 
 Addresses can just as easily be used from the backend.
 
+### Embed in a Phoenix (or Plug) application
+
+`GenBrowser` can be easily added to a Phoenix or Plug application using the `GenBrowser.Plug`.
+
+In Phoenix add the plug to your `endpoint.ex`.
+**NOTE:** it must be added after the Parser Plugs.
+
+```elixir
+defmodule MyAppWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :my_app
+
+  # other plugs ...
+
+  plug(Plug.Parsers,
+    parsers: [:urlencoded, :multipart, :json],
+    pass: ["*/*"],
+    json_decoder: Poison
+  )
+
+  plug(GenBrowser.Plug)
+  plug(Plug.MethodOverride)
+  plug(Plug.Head)
+
+  # more plugs
+end
+```
+
+Just make sure your client code is pointing to the correct host,
+normally `localhost:4000` for new Phoenix projects.
+
 ### Send a message to a client
 
 First fetch the address of a running ponger browser.
@@ -268,11 +298,12 @@ Investigate Scala/JS/Redux events.
 
 Send message to email address demo.
 
-### Integration with raxx and/or plug
+### Setup Docker image that can be pulled
 
-### Switch internal message structure for event
-
-Define a struct, don't have a type field, this is now just part of the data.
+install node on Docker
+have docker build the npm packages
+server the bundle under `/_gb`
+JavaScript get your own source
 
 ### Develop a general purpose address structure
 

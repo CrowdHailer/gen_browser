@@ -7,6 +7,7 @@ export function start (backend, options = {}) {
   // NOTE need to shutdown properly onerror
   const milliseconds = options.timeout || 5000
   const mailbox = new Mailbox()
+  backend = backend + "/_gb"
   const mbURL = mailboxURL(backend)
 
   const eventSource = new EventSource(mbURL)

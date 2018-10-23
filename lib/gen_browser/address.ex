@@ -1,4 +1,5 @@
 defmodule GenBrowser.Address do
+  @moduledoc false
   @enforce_keys [:value]
   defstruct @enforce_keys
 
@@ -61,9 +62,3 @@ defmodule GenBrowser.Address do
     end
   end
 end
-
-# defimpl Jason.Encoder, for: GenBrowser.Address do
-#   def encode(address, _options) do
-#     "\"#{GenBrowser.Address.encode(address)}\""
-#   end
-# end

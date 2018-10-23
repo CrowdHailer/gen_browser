@@ -4,7 +4,7 @@ defmodule GenBrowser.MixProject do
   def project do
     [
       app: :gen_browser,
-      version: "0.2.0",
+      version: "0.3.0",
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -27,6 +27,7 @@ defmodule GenBrowser.MixProject do
       {:server_sent_event, "~> 0.4.2"},
       {:jason, "~> 1.0"},
       {:ok, "~> 2.0.0"},
+      {:plug_cowboy, "~> 2.0.0", only: :test},
       {:exsync, "~> 0.2.3", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
@@ -34,7 +35,7 @@ defmodule GenBrowser.MixProject do
 
   defp description do
     """
-    Treat a client like any other Elixir/erlang process in a distributed system
+    Give clients/browser an identifier that can be used to send messages to/from/between clients. In essence a pid.
     """
   end
 

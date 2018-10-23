@@ -39,8 +39,6 @@
       $readyState.innerHTML = 'Connecting ...'
       try {
         const client = await GenBrowser.start('http://localhost:8080')
-        // Use this for the plug implementation
-        // const client = await GenBrowser.start('http://localhost:4000/_gb')
         console.log(client.address)
         $readyState.innerHTML = 'Ready'
         $pongerAddress.value = client.address

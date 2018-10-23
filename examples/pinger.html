@@ -61,7 +61,6 @@
       $readyState.innerHTML = 'Connecting ...'
       try {
         window.client = await GenBrowser.start('http://localhost:8080')
-        // window.client = await GenBrowser.start('http://localhost:4000/_gb')
         console.log(window.client)
         $readyState.innerHTML = 'Ready'
       } catch (error) {
