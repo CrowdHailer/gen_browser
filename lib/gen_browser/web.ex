@@ -1,4 +1,5 @@
 defmodule GenBrowser.Web do
+  @moduledoc false
   def decode_last_event_id(last_event_id, secrets) do
     invalid_format_message =
       "Reconnection failed to due incorrect format of 'last-event-id' header"
@@ -8,7 +9,7 @@ defmodule GenBrowser.Web do
         {:ok, {nil, nil}}
 
       last_event_id ->
-        case GenBrowser.Web.unwrap_secure(last_event_id, secrets) do
+        case unwrap_secure(last_event_id, secrets) do
           {:ok, reconnect_id} ->
             case String.split(reconnect_id, ":") do
               [mailbox_id, string_cursor] ->
@@ -30,24 +31,15 @@ defmodule GenBrowser.Web do
     end
   end
 
-  def encode_message(%{id: id, data: data, type: :init}, secrets) do
-    data = Map.merge(data, %{type: "__gen_browser__/init"})
-    wrapped_data = wrap_all_addresses(data, secrets)
+  def encode_message(%GenBrowser.Message{id: {mailbox_id, cursor}, data: data}, secrets) do
+    id = wrap_secure("#{mailbox_id}:#{cursor}", secrets)
+    data = Jason.encode!(wrap_all_addresses(data, secrets))
 
-    ServerSentEvent.serialize(
-      Jason.encode!(wrapped_data),
-      id: GenBrowser.Web.wrap_secure(id, secrets)
-    )
-  end
-
-  def encode_message(%{id: id, data: data}, secrets) do
-    data = wrap_all_addresses(data, secrets)
-
-    ServerSentEvent.serialize(Jason.encode!(data), id: GenBrowser.Web.wrap_secure(id, secrets))
+    ServerSentEvent.serialize(data, id: id)
   end
 
   defp wrap_all_addresses(address = %GenBrowser.Address{}, secrets) do
-    GenBrowser.Web.wrap_secure(GenBrowser.Address.encode(address), secrets)
+    wrap_secure(GenBrowser.Address.encode(address), secrets)
   end
 
   defp wrap_all_addresses(data = %_struct{}, _secrets) do

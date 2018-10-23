@@ -10,7 +10,7 @@ const { start } = require('../dist/gen-browser.js')
 
 test('Sending messages to the client until connection closed', async () => {
   startPromise = start('http://gen-browser.dev/1')
-  const source = sources['http://gen-browser.dev/1/mailbox']
+  const source = sources['http://gen-browser.dev/1/_gb/mailbox']
 
   var data = '{"type":"__gen_browser__/init","address":"myAddress","config":{"a":1,"b":2}}'
   var event = new MessageEvent('message', {data: data})
@@ -48,10 +48,10 @@ test('Starting a client will be rejected after timeout', async () => {
 
 test('Starting a client will be rejected if eventSource will no longer retry', async () => {
   const promise = start('http://gen-browser.dev/3')
-  const source = sources['http://gen-browser.dev/3/mailbox']
+  const source = sources['http://gen-browser.dev/3/_gb/mailbox']
   source.close()
   source.emitError()
   return promise.catch((error) => {
-    expect(error).toBe('Failed to connect to \'http://gen-browser.dev/3/mailbox\'')
+    expect(error).toBe('Failed to connect to \'http://gen-browser.dev/3/_gb/mailbox\'')
   })
 })

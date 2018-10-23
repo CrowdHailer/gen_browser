@@ -1,13 +1,14 @@
 defmodule GenBrowser.Raxx do
+  @moduledoc false
   use Raxx.Server
-  use Raxx.Logger
+  # use Raxx.Logger
 
   require OK
 
   @sse_mime_type ServerSentEvent.mime_type()
 
   @impl Raxx.Server
-  def handle_request(request = %{path: ["mailbox"]}, state) do
+  def handle_request(request = %{path: ["_gb", "mailbox"]}, state) do
     OK.try do
       _ <- verify_accepts_server_sent_events(request)
       {mailbox_id, cursor} <- decode_last_event_id(request, state.secrets)
@@ -32,7 +33,7 @@ defmodule GenBrowser.Raxx do
     end
   end
 
-  def handle_request(request = %{method: :POST, path: ["send", address]}, state) do
+  def handle_request(request = %{method: :POST, path: ["_gb", "send", address]}, state) do
     OK.try do
       address <- unwrap_address(address, state.secrets)
       address <- decode_address(address)
