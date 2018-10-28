@@ -1,4 +1,11 @@
 defmodule GenBrowser.Web do
+  {:ok, javascript} = File.read(Path.join(__DIR__, "../../dist/gen-browser.js"))
+
+  @external_resource "dist/gen-browser.js"
+  def javascript_content() do
+    unquote(javascript)
+  end
+
   @moduledoc false
   def decode_last_event_id(last_event_id, secrets) do
     invalid_format_message =

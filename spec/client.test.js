@@ -12,13 +12,13 @@ test('Sending messages to the client until connection closed', async () => {
   startPromise = start('http://gen-browser.dev/1')
   const source = sources['http://gen-browser.dev/1/_gb/mailbox']
 
-  var data = '{"type":"__gen_browser__/init","address":"myAddress","config":{"a":1,"b":2}}'
+  var data = '{"type":"__gen_browser__/init","address":"myAddress","communal":{"a":1,"b":2}}'
   var event = new MessageEvent('message', {data: data})
   source.emitMessage(event)
 
-  const {address, mailbox, send, config} = await startPromise
+  const {address, mailbox, send, communal} = await startPromise
   expect(address).toBe("myAddress")
-  expect(config).toEqual({a: 1, b: 2})
+  expect(communal).toEqual({a: 1, b: 2})
 
   var event = new MessageEvent('message', {data: '{"pong":true}'})
   source.emitMessage(event)

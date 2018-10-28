@@ -8,13 +8,19 @@ defmodule GenBrowser.Raxx do
   @sse_mime_type ServerSentEvent.mime_type()
 
   @impl Raxx.Server
-  def handle_request(request = %{path: ["_gb", "mailbox"]}, state) do
+  def handle_request(request = %{method: :GET, path: ["_gb", "client.js"]}, _state) do
+    response(:ok)
+    |> set_header("content-type", "application/javascript")
+    |> set_body(GenBrowser.Web.javascript_content())
+  end
+
+  def handle_request(request = %{method: :GET, path: ["_gb", "mailbox"]}, state) do
     OK.try do
       _ <- verify_accepts_server_sent_events(request)
       {mailbox_id, cursor} <- decode_last_event_id(request, state.secrets)
 
       messages <-
-        GenBrowser.Mailbox.read(mailbox_id, cursor, GenBrowser.MailboxSupervisor, state.config)
+        GenBrowser.Mailbox.read(mailbox_id, cursor, GenBrowser.MailboxSupervisor, state.communal)
     after
       response_head =
         response(:ok)
@@ -46,6 +52,12 @@ defmodule GenBrowser.Raxx do
         response
     end
     |> set_header("access-control-allow-origin", "*")
+  end
+
+  def handle_request(%{method: :OPTIONS, path: ["_gb", "send", _address]}, _state) do
+    response(:ok)
+    |> set_header("access-control-allow-origin", "*")
+    |> set_header("access-control-allow-headers", "content-type")
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do

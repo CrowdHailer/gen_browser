@@ -67,7 +67,7 @@ defmodule GenBrowser.IntegrationTest do
 
   setup do
     {:ok, server} =
-      Ace.HTTP.Service.start_link({GenBrowser.Raxx, %{secrets: ["secret"], config: %{}}},
+      Ace.HTTP.Service.start_link({GenBrowser.Raxx, %{secrets: ["secret"], communal: %{}}},
         port: 0,
         cleartext: true
       )
@@ -91,7 +91,8 @@ defmodule GenBrowser.IntegrationTest do
 
       assert_receive %{id: cursor0, lines: [json]}
 
-      assert {:ok, %{"address" => address, "config" => config, "type" => "__gen_browser__/init"}} =
+      assert {:ok,
+              %{"address" => address, "communal" => communal, "type" => "__gen_browser__/init"}} =
                Jason.decode(json)
 
       request =

@@ -17,4 +17,4 @@ RUN mix compile
 EXPOSE 8080
 
 # Need to include this command in mix run otherwise you don't get a shell
-CMD iex -S mix run --no-halt examples/standalone.exs
+CMD iex -S mix run --no-halt examples/playground.exs

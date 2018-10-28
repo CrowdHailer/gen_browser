@@ -2,7 +2,7 @@ defmodule GenBrowser.Mailbox do
   @moduledoc false
   use GenServer
 
-  def read(nil, nil, supervisor, config) do
+  def read(nil, nil, supervisor, communal) do
     mailbox_id = generate_id()
     address = {:global, {__MODULE__, mailbox_id}}
 
@@ -23,13 +23,13 @@ defmodule GenBrowser.Mailbox do
          [
            %GenBrowser.Message{
              id: {mailbox_id, 0},
-             data: %{address: address, config: config, type: "__gen_browser__/init"}
+             data: %{address: address, communal: communal, type: "__gen_browser__/init"}
            }
          ]}
     end
   end
 
-  def read(mailbox_id, cursor, _supervisor, _config) do
+  def read(mailbox_id, cursor, _supervisor, _communal) do
     case :global.whereis_name({__MODULE__, mailbox_id}) do
       pid when is_pid(pid) ->
         :ok = GenServer.call(pid, {:read, cursor, self()})

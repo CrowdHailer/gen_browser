@@ -1,7 +1,7 @@
 import Mailbox from './mailbox.js'
 import promiseTimeout from './promiseTimeout.js'
 export { Mailbox }
-// import from backend config function
+
 export function start (backend, options = {}) {
   // Can use on open to check if the connection is made in time
   // NOTE need to shutdown properly onerror
@@ -16,7 +16,7 @@ export function start (backend, options = {}) {
     // onmessage is only called if the type is "message"
     // https://stackoverflow.com/questions/9933619/html5-eventsource-listener-for-all-events
     eventSource.onmessage = function (event) {
-      const {type, address, config} = JSON.parse(event.data)
+      const {type, address, communal} = JSON.parse(event.data)
       if (type != '__gen_browser__/init') { reject('Server emitted incorrect first event') }
 
       eventSource.onmessage = function (event) {
@@ -34,7 +34,7 @@ export function start (backend, options = {}) {
         address: address,
         mailbox: mailbox,
         send: function (address, message) { return send(backend, address, message) },
-        config: config
+        communal: communal
       })
     }
     eventSource.onerror = function (error) {

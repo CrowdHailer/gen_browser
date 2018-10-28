@@ -5,17 +5,17 @@ defmodule GenBrowser do
   Start a new backend for the GenBrowser clients.
 
   First argument is the configuration that clients will receive when started.
-  This config must be JSON encodable.
+  This communal must be JSON encodable.
   All addresses are sent to the client must be wrapped as a `GenBrowser.Address` struct,
   This will ensure they are signed to protect against tampering.
 
   If the secrets option is not set the value will be read from environment variable SECRET
   """
-  def start_link(config, options) do
+  def start_link(communal, options) do
     {secrets, server_options} = Keyword.pop(options, :secrets, [System.get_env("SECRET")])
 
     Ace.HTTP.Service.start_link(
-      {GenBrowser.Raxx, %{secrets: secrets, config: config}},
+      {GenBrowser.Raxx, %{secrets: secrets, communal: communal}},
       server_options
     )
   end

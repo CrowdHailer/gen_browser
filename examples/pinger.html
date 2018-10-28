@@ -32,7 +32,7 @@
       </tbody>
     </table>
   </main>
-  <script type="text/javascript" src="../dist/gen-browser.js"></script>
+  <script type="text/javascript" src="http://localhost:8080/_gb/client.js"></script>
   <script type="text/javascript">
     const $readyState = document.getElementById('ready-state')
     const $input = document.getElementById('ponger-address')
@@ -40,7 +40,7 @@
     async function sendPing() {
       var ponger
       if ($input.value == '') {
-        ponger = window.client.config.logger
+        ponger = window.client.communal.logger
       } else {
         ponger = $input.value
       }

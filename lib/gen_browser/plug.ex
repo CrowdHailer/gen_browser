@@ -15,15 +15,29 @@ if Code.ensure_compiled?(Plug) do
 
     def init(options) do
       namespace = Keyword.get(options, :namespace, "_gb")
-      %{namespace: namespace}
+      communal = Keyword.get(options, :communal, %{})
+      %{namespace: namespace, communal: communal}
     end
 
-    def call(conn = %{method: "GET", path_info: [namespace, "mailbox"]}, %{namespace: namespace}) do
+    def call(conn = %{method: "GET", path_info: [namespace, "client.js"]}, %{
+          namespace: namespace
+        }) do
+      conn
+      |> put_resp_header("content", "application/javascript")
+      |> resp(200, GenBrowser.Web.javascript_content())
+      |> halt()
+    end
+
+    def call(conn = %{method: "GET", path_info: [namespace, "mailbox"]}, %{
+          namespace: namespace,
+          communal: communal
+        }) do
       OK.try do
         _ <- verify_accepts_server_sent_events(conn)
         {mailbox_id, cursor} <- decode_last_event_id(conn)
 
-        messages <- GenBrowser.Mailbox.read(mailbox_id, cursor, GenBrowser.MailboxSupervisor, %{})
+        messages <-
+          GenBrowser.Mailbox.read(mailbox_id, cursor, GenBrowser.MailboxSupervisor, communal)
       after
         first_chunk =
           Enum.map(messages, &GenBrowser.Web.encode_message(&1, [conn.secret_key_base]))

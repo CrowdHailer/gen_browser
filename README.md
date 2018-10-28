@@ -2,7 +2,7 @@
 
 **Transparent bi-directional communication for clients, servers and more**
 
- GenBrowser gives every client a unique identifier that can be used to send messages to/from/between clients.
+ GenBrowser gives every client a unique identifier that can be used to send messages to/from/between clients AND server processes.
 
 ## Example
 
@@ -26,7 +26,7 @@ const client = await GenBrowser.start('http://localhost:8080')
 
 var peer = prompt("Enter a ponger address.")
 if (peer == '') {
-  peer = client.config.logger
+  peer = client.communal.logger
 }
 client.send(peer, {type: 'ping', from: client.address})
 
@@ -42,7 +42,7 @@ Once started `gen-browser` has four things.
   - `mailbox.handle(callback)` will call the callback with the contents of a message each time one is received.
 3. A function to send messages, that takes the target address and messages as arguments.
   The message must be serialisable to JSON.
-4. Config from the server, this can be anything including addresses for processes on the backend,
+4. Communal information from server, this can be anything including addresses for processes on the backend,
   such as the logger process in the examples above.
 
 *Note:* Receive cannot be called on mailbox that has a custom handler installed.
@@ -68,13 +68,13 @@ To start the backend use Docker as follows.
 
 ```
 docker build -t gen-browser .
-docker run -it -e SECRET=s3cr3t -p 8080:8080 gen-browser iex -S mix run --no-halt examples/standalone.exs
+docker run -it -e SECRET=s3cr3t -p 8080:8080 gen-browser iex -S mix run examples/playground.exs
 ```
 
 Or, if you have Elixir installed but not docker, mix can be used directly
 
 ```
-SECRET=s3cr3t iex -S mix run --no-halt examples/standalone.exs
+SECRET=s3cr3t iex -S mix run examples/playground.exs
 ```
 
 Open `examples/pinger.html` and `examples/ponger.html` in your browser.
@@ -102,7 +102,7 @@ defmodule MyAppWeb.Endpoint do
     json_decoder: Poison
   )
 
-  plug(GenBrowser.Plug)
+  plug(GenBrowser.Plug, communal: %{myProcess: GenBrowser.Address.new(MyProcess)})
   plug(Plug.MethodOverride)
   plug(Plug.Head)
 
@@ -134,9 +134,9 @@ iex> flush
 # :ok
 ```
 
-Any server process can be added to the clients config at startup.
+Any server process can be added to the clients communal at startup.
 
-See the [standalone example](examples/standalone.exs)
+See the [playground example](examples/playground.exs)
 
 Or follow the docs on [hexdoc.pm](https://hexdocs.pm/gen_browser/readme.html)
 
