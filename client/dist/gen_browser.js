@@ -111,7 +111,7 @@
     };
   }
 
-  function start (backend, options = {}) {
+  function start (backend = '', options = {}) {
     // Can use on open to check if the connection is made in time
     // NOTE need to shutdown properly onerror
     const milliseconds = options.timeout || 5000;

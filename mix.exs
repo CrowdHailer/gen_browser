@@ -4,7 +4,7 @@ defmodule GenBrowser.MixProject do
   def project do
     [
       app: :gen_browser,
-      version: "0.3.0",
+      version: "0.4.0",
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -45,7 +45,8 @@ defmodule GenBrowser.MixProject do
       maintainers: ["Peter Saxton"],
       licenses: ["Apache 2.0"],
       links: %{"GitHub" => "https://github.com/crowdhailer/gen_browser"},
-      files: ~w(client lib mix.exs README.md formatter.exs)
+      files: ~w(client lib mix.exs README.md .formatter.exs),
+      exclude_patterns: ~w(node_modules package-lock.json)
     ]
   end
 end

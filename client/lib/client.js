@@ -2,7 +2,7 @@ import Mailbox from './mailbox.js'
 import promiseTimeout from './promiseTimeout.js'
 export { Mailbox }
 
-export function start (backend, options = {}) {
+export function start (backend = '', options = {}) {
   // Can use on open to check if the connection is made in time
   // NOTE need to shutdown properly onerror
   const milliseconds = options.timeout || 5000

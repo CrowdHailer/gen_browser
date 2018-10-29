@@ -7,7 +7,7 @@ defmodule GenBrowserTest do
       {_, 0} ->
         :ok
 
-      {output, _code} ->
+      {_output, _code} ->
         flunk("JavaScript testing failed")
     end
   end

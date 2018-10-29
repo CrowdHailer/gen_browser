@@ -4,7 +4,9 @@
 
  GenBrowser gives every client a unique identifier that can be used to send messages to/from/between clients AND server processes.
 
-## Example
+*Project in active development, it is advised to read the [Notes](#notes) section.*
+
+## Example Client
 
 To experiment with a similar example follow the instructions to set up the [Playground](#playground).
 
@@ -45,12 +47,46 @@ Once started `gen-browser` has four things.
 4. Communal information from server, this can be anything including addresses for processes on the backend,
   such as the logger process in the examples above.
 
-*Note:* Receive cannot be called on mailbox that has a custom handler installed.
+## Embed in a Phoenix (or Plug) application
+
+In Phoenix add the plug to your `endpoint.ex`.
+**NOTE:** it must be added after the Parser Plugs.
+
+```elixir
+defmodule MyAppWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :my_app
+
+  # other plugs ...
+
+  plug(Plug.Parsers,
+    parsers: [:urlencoded, :multipart, :json],
+    pass: ["*/*"],
+    json_decoder: Poison
+  )
+
+  plug(GenBrowser.Plug, communal: %{myProcess: GenBrowser.Address.new(MyProcess)})
+  plug(Plug.MethodOverride)
+  plug(Plug.Head)
+
+  # more plugs
+end
+```
+
+*Any server process can be added to the communal information.*
+
+Add the following script tags to the relevant pages.
+
+```html
+<script type="text/javascript" src="/_gb/client.js"></script>
+<script type="text/javascript">
+  const {address, mailbox, send, communal} = await GenBrowser.start()
+</script>
+```
 
 ## Playground
 
-The pinger/ponger example is included in the `/examples` dir this project.
-Clone this repo and follow the instructions below to experiment.
+Run a standalone backend that shares a process for name registration and a processes for server logging in the communal information.
+This backend is used for the ping/pong examples in `/examples`
 
 ```
 git clone git@github.com:CrowdHailer/gen_browser.git
@@ -79,40 +115,6 @@ SECRET=s3cr3t iex -S mix run examples/playground.exs
 
 Open `examples/pinger.html` and `examples/ponger.html` in your browser.
 
-## Server API
-
-Addresses can just as easily be used from the backend.
-
-### Embed in a Phoenix (or Plug) application
-
-`GenBrowser` can be easily added to a Phoenix or Plug application using the `GenBrowser.Plug`.
-
-In Phoenix add the plug to your `endpoint.ex`.
-**NOTE:** it must be added after the Parser Plugs.
-
-```elixir
-defmodule MyAppWeb.Endpoint do
-  use Phoenix.Endpoint, otp_app: :my_app
-
-  # other plugs ...
-
-  plug(Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
-    pass: ["*/*"],
-    json_decoder: Poison
-  )
-
-  plug(GenBrowser.Plug, communal: %{myProcess: GenBrowser.Address.new(MyProcess)})
-  plug(Plug.MethodOverride)
-  plug(Plug.Head)
-
-  # more plugs
-end
-```
-
-Just make sure your client code is pointing to the correct host,
-normally `localhost:4000` for new Phoenix projects.
-
 ### Send a message to a client
 
 First fetch the address of a running ponger browser.
@@ -134,11 +136,21 @@ iex> flush
 # :ok
 ```
 
-Any server process can be added to the clients communal at startup.
+## Contributing
 
-See the [playground example](examples/playground.exs)
+This project requires both Elixir and node (+ npm) to be installed.
 
-Or follow the docs on [hexdoc.pm](https://hexdocs.pm/gen_browser/readme.html)
+To fetch dependencies.
+
+```
+mix deps.get
+(cd client ; npm install)
+```
+
+To run tests use `mix test`, The elixir tests include running the JavaScript test suite.
+
+It would be good if, using `mix hex.publish` is aliased to run the tests, which includes the build step.
+Currently it is required to remember to build before pushing to hex.
 
 ## Notes
 

@@ -1,12 +1,17 @@
 defmodule GenBrowser.Web do
+  @moduledoc """
+  Transform between Elixir representations of addresses, and secured binaries that are safe for client.
+  """
   {:ok, javascript} = File.read(Path.join(__DIR__, "../../client/dist/gen_browser.js"))
 
-  @external_resource "dist/gen-browser.js"
+  @doc """
+  Return the build JavaScript bundle for the GenBrowser client.
+  """
+  @external_resource "../../client/dist/gen_browser.js"
   def javascript_content() do
     unquote(javascript)
   end
 
-  @moduledoc false
   def decode_last_event_id(last_event_id, secrets) do
     invalid_format_message =
       "Reconnection failed to due incorrect format of 'last-event-id' header"
@@ -38,6 +43,9 @@ defmodule GenBrowser.Web do
     end
   end
 
+  @doc """
+  Serialize a message as a server sent event that can be sent to a web client
+  """
   def encode_message(%GenBrowser.Message{id: {mailbox_id, cursor}, data: data}, secrets) do
     id = wrap_secure("#{mailbox_id}:#{cursor}", secrets)
     data = Jason.encode!(wrap_all_addresses(data, secrets))

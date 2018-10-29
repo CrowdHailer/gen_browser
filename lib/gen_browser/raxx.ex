@@ -8,7 +8,7 @@ defmodule GenBrowser.Raxx do
   @sse_mime_type ServerSentEvent.mime_type()
 
   @impl Raxx.Server
-  def handle_request(request = %{method: :GET, path: ["_gb", "client.js"]}, _state) do
+  def handle_request(%{method: :GET, path: ["_gb", "client.js"]}, _state) do
     response(:ok)
     |> set_header("content-type", "application/javascript")
     |> set_body(GenBrowser.Web.javascript_content())
