@@ -1,9 +1,9 @@
 import resolve from 'rollup-plugin-node-resolve';
 
 export default {
-  input: 'src/client.js',
+  input: 'lib/client.js',
   output: {
-    file: 'dist/gen-browser.js',
+    file: 'dist/gen_browser.js',
     format: 'umd',
     name: 'GenBrowser'
   },

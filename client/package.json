@@ -1,9 +1,11 @@
 {
   "name": "gen-browser",
+  "index": "dist/gen_browser.js",
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "test": "jest",
-    "pretest": "npm run build"
+    "pretest": "npm run build",
+    "prepublish": "npm run build"
   },
   "devDependencies": {
     "eventsourcemock": "^2.0.0",

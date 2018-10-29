@@ -1,4 +1,4 @@
-const { Mailbox } = require('../dist/gen-browser.js')
+const { Mailbox } = require('../dist/gen_browser.js')
 
 test('message can be delivered before caller receives it', async () => {
   const mailbox = new Mailbox()

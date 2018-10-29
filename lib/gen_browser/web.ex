@@ -1,5 +1,5 @@
 defmodule GenBrowser.Web do
-  {:ok, javascript} = File.read(Path.join(__DIR__, "../../dist/gen-browser.js"))
+  {:ok, javascript} = File.read(Path.join(__DIR__, "../../client/dist/gen_browser.js"))
 
   @external_resource "dist/gen-browser.js"
   def javascript_content() do

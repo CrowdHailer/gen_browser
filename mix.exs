@@ -10,7 +10,8 @@ defmodule GenBrowser.MixProject do
       deps: deps(),
       description: description(),
       docs: [extras: ["README.md"], main: "readme"],
-      package: package()
+      package: package(),
+      source_url: "https://github.com/crowdhailer/gen_browser"
     ]
   end
 
@@ -43,7 +44,8 @@ defmodule GenBrowser.MixProject do
     [
       maintainers: ["Peter Saxton"],
       licenses: ["Apache 2.0"],
-      links: %{"GitHub" => "https://github.com/crowdhailer/gen_browser"}
+      links: %{"GitHub" => "https://github.com/crowdhailer/gen_browser"},
+      files: ~w(client lib mix.exs README.md formatter.exs)
     ]
   end
 end

@@ -6,7 +6,7 @@ Object.defineProperty(window, 'EventSource', {
   value: EventSource,
 });
 
-const { start } = require('../dist/gen-browser.js')
+const { start } = require('../dist/gen_browser.js')
 
 test('Sending messages to the client until connection closed', async () => {
   startPromise = start('http://gen-browser.dev/1')
