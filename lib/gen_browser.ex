@@ -45,9 +45,19 @@ defmodule GenBrowser do
     end
   end
 
+  import Kernel, except: [send: 2]
+
   @doc """
   Send message to a decoded address
   """
+  def send(address, message) when is_binary(address) do
+    OK.for do
+      term <- decode_address(address)
+    after
+      send(term, message)
+    end
+  end
+
   def send(term, message) do
     GenBrowser.Address.send_message(GenBrowser.Address.new(term), message)
   end
