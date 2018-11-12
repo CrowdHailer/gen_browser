@@ -304,12 +304,6 @@ Let me know what you think.
 
 ## Roadmap
 
-### Write talk about Actors for the browser
-
-Investigate Scala/JS/Redux events.
-
-Send message to email address demo.
-
 ### Setup Docker image that can be pulled
 
 install node on Docker
@@ -455,6 +449,16 @@ Look at existing work in comms/pachyderm.
 
 To share this will be a recipe for working with dialyzer because lack of generics prevent solution being exported from a library.
 
+### (Type/Pure)Script Actor
+
+JSAP - JavaScript Actor Platform
+
+Named actor with reference to Dom
+- create mailbox<T>
+- receive fn -> Promise<Result<T>>
+- receive with a select function T -> A returns a result of A
+- monitor needs to accept a Mailbox where T includes Down message.
+
 ### Session type interactions
 
 This probably requires pure interactions.
@@ -462,6 +466,14 @@ Autowriting is a pretend for affine types.
 Need multiparty to handle timout.
 
 This is the point I am likely to seriously revist Rust
+
+### RGBA Framework
+
+Raft - GenBrowser - Ace
+
+Full stack Framework, use Raxx.Kit
+Is it possible to have a Raft setup which just manages an optimistic concurrency key,
+then the client can just write allowed values.
 
 ### Typed transport
 
@@ -487,3 +499,5 @@ The only language I know with this trait is idris.
 ### Work out if client can generate own address
 
 Then no need to await at startup
+
+Client can pass mailbox as an argument to the start gen browser function.
